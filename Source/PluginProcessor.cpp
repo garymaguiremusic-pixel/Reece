@@ -265,6 +265,16 @@ void ReeseAudioProcessor::setStateInformation (const void* data, int sizeInBytes
             currentProgram.store (jlimit (0, getNumPrograms() - 1, (int) state.getProperty ("program", 0)));
             gui.editorWidth.store ((int) state.getProperty ("editorWidth", 0));
             apvts.replaceState (state);
+
+            // replaceState skips parameters whose stored value looks unchanged, which can leave
+            // a button or choice at an in-between value a host set. Apply every value explicitly.
+            for (auto* p : getParameters())
+                if (auto* ranged = dynamic_cast<RangedAudioParameter*> (p))
+                {
+                    const auto child = state.getChildWithProperty ("id", ranged->getParameterID());
+                    if (child.isValid() && child.hasProperty ("value"))
+                        ranged->setValueNotifyingHost (ranged->convertTo0to1 ((float) child.getProperty ("value")));
+                }
         }
     }
 }

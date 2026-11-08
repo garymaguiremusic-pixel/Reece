@@ -359,6 +359,19 @@ public:
             expectGreaterThan (at250, at750 * 0.3);
         }
 
+        beginTest ("State restore also resets buttons a host left at in-between values");
+        {
+            auto p = makeProcessor();
+            auto* sat = p->apvts.getParameter (ParamIDs::satOn);
+            sat->setValueNotifyingHost (0.3f);
+            const float saved = sat->getValue();
+            MemoryBlock state;
+            p->getStateInformation (state);
+            sat->setValueNotifyingHost (0.26f);
+            p->setStateInformation (state.getData(), (int) state.getSize());
+            expectWithinAbsoluteError (sat->getValue(), saved < 0.5f ? 0.0f : 1.0f, 0.1f);
+        }
+
         beginTest ("State round trip");
         {
             auto p = makeProcessor();
