@@ -19,6 +19,12 @@ It appears as an instrument under **VirusDelay Project**.
 ## Oscillators (x2)
 
 * **Wave**: Saw, Ramp (reverse saw), Square, Pulse, Triangle, Sine, Saw + Square, Noise.
+* **Noise** has its own **Low Pass / Band Pass / High Pass** filter with **Cutoff** and **Reso**, for the noise
+  only. These take the place of Semi / Fine / Voices / Detune while the wave is Noise. With the **Phase** button on,
+  the noise restarts with the same pattern on every note; the **Phase** knob picks the pattern.
+* **FM** button and **FM** knob (each oscillator): the other oscillator frequency-modulates this one
+  (Osc 2 -> Osc 1, Osc 1 -> Osc 2, or both for cross-FM). The modulator works even with its Level at 0,
+  so you can hear only the FM'd sound. A detuned modulator gives moving, growling FM.
   All are band-limited (PolyBLEP / PolyBLAMP), so they stay clean high up and with wide detunes.
 * **-12 / +12** buttons beside each oscillator shift it down or up an octave (-36 to +36 semitones).
 * **Semi** (-12 to +12) and **Fine** (-100 to +100 cents). Fine is the classic Reese detune between the two oscillators.
@@ -73,10 +79,11 @@ the current tempo. Sustain stays a level. Switching Sync off goes back to the fr
 ## Controls
 
 * Every knob moves in steps of **1.0** when you drag or use the mouse wheel. Hold **Shift** for **0.1** steps.
-  Cutoff and Reso are the exception and move continuously. Double-click a knob to reset it, and hover
+  Cutoff and Reso are the exception and move continuously. **Double-click a knob to set it to 0** (knobs
+  that can't be 0 go to their nearest value: Voices -> 1, PW -> 1 %). Hover
   to see its value in real units. The cutoff frequency is shown in the Filter header.
 * The window is resizable from the bottom-right corner (70-200 %) and remembers its size.
-* 9 factory presets.
+* 10 factory presets.
 
 ## Building
 

@@ -181,7 +181,8 @@ KnobAttachment::KnobAttachment (RangedAudioParameter& p, VirusKnob& k)
 {
     const auto range = p.getNormalisableRange();
     knob.setRange (range.start, range.end, 0.0);
-    knob.setDefaultValue (p.convertFrom0to1 (p.getDefaultValue()));
+    // double-click goes to 0, or to the nearest value this knob allows (e.g. Voices -> 1)
+    knob.setDefaultValue (jlimit (range.start, range.end, 0.0f));
 
     knob.onGestureBegin = [this] { attachment.beginGesture(); };
     knob.onGestureEnd   = [this] { attachment.endGesture(); };
@@ -371,10 +372,11 @@ void HelpOverlay::paint (Graphics& g)
 
     const char* lines[] =
     {
-        "OSC 1 / OSC 2:  Saw, Ramp, Square, Pulse (PW), Triangle, Sine, Saw + Square, Noise",
+        "OSC 1 / OSC 2:  Saw, Ramp, Square, Pulse (PW), Triangle, Sine, Saw + Square, Noise (own LP / BP / HP filter)",
         "-12 / +12:  shift the oscillator down or up an octave.  SEMI / FINE:  tuning (FINE detunes in cents)",
         "VOICES / DETUNE:  unison stack (1 - 8) spread across +- DETUNE cents and across the stereo field",
-        "PHASE button (each osc):  off = free running. On = restart at the PHASE knob on every new note",
+        "PHASE button (each osc):  off = free running. On = restart at the PHASE knob on every new note (Noise: same pattern)",
+        "FM (each osc):  the other oscillator frequency-modulates this one by the FM amount (works at Level 0 too)",
         "PAN / LEVEL:  placement and volume of each oscillator",
         "MONO BASS:  everything below this frequency is summed to mono (Off - 200 Hz)",
         "PHASE LOCK:  below this frequency the oscillators are retriggered and held in phase, so the sub",
@@ -384,7 +386,7 @@ void HelpOverlay::paint (Graphics& g)
         "SATURATION:  the KickDrum saturation (Soft, Tape, Tube, Hard Clip, Foldback, Fuzz), 4x oversampled",
         "MODE:  Mono (retrigger), Legato (glide without retrigger) or Poly (8 notes).  GLIDE:  portamento time",
         "SYNC (envelopes):  Attack / Decay / Release lock to the tempo: 1/512, 1/256 ... 1/2, 1/1 (one step per value)",
-        "Knobs move in steps of 1; hold Shift for 0.1 steps. Scroll wheel too. Double-click = default.",
+        "Knobs move in steps of 1; hold Shift for 0.1 steps. Scroll wheel too. Double-click = 0.",
         "Drag the bottom-right corner to resize the window.",
         "",
         "Click anywhere to close."

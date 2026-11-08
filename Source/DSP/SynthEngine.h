@@ -16,6 +16,11 @@ namespace rs
         float pw = 0.5f;             // 0..1
         float phase = 0.0f;          // start phase 0..1
         bool retrig = false;         // PHASE button: restart at 'phase' on every note (off = free running)
+        bool fmOn = false;           // FM button: the other oscillator modulates this one
+        float fmAmount = 0.0f;       // 0..1
+        int noiseFilter = 0;         // Noise wave only: 0 = LP, 1 = BP, 2 = HP
+        float noiseCutoff = 100.0f;  // knob 0..100 (20 Hz .. 20 kHz)
+        float noiseReso = 0.0f;      // 0..1
         float pan = 0.0f;            // -1..1
         float gain = 0.8f;           // 0..1
     };
@@ -52,6 +57,8 @@ namespace rs
         float ratio[kNumOscs][kMaxUnison] {};
         float gainL[kNumOscs][kMaxUnison] {}, gainR[kNumOscs][kMaxUnison] {};
         float noiseL[kNumOscs] {}, noiseR[kNumOscs] {};
+        float noiseG[kNumOscs] {}, noiseK[kNumOscs] {};   // noise filter coefficients
+        float fmDepth[kNumOscs] {};                        // 0 = FM off
         float lockFineCents = 0.0f;
     };
 
@@ -96,6 +103,8 @@ namespace rs
         float phases[kNumOscs][kMaxUnison] {};
         float lockPhase[kNumOscs] {};
         Noise noise[kNumOscs], random;
+        LinearSvf noiseFilter[kNumOscs];
+        float fmPrev[kNumOscs] {}, fmLockPrev[kNumOscs] {};   // last output of each oscillator (FM modulators)
         float drift = 0.0f;          // tiny per-voice cutoff offset, like analog component tolerance
 
         Envelope ampEnv, fltEnv;

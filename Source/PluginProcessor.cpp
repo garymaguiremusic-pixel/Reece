@@ -59,6 +59,11 @@ EngineSettings ReeseAudioProcessor::makeEngineSettings() const
         os.pw          = raw (oscParam (o, ParamIDs::pw)) * 0.01f;
         os.phase       = raw (oscParam (o, ParamIDs::phase)) / 360.0f;
         os.retrig      = raw (oscParam (o, ParamIDs::retrig)) > 0.5f;
+        os.fmOn        = raw (oscParam (o, ParamIDs::fmOn)) > 0.5f;
+        os.fmAmount    = raw (oscParam (o, ParamIDs::fmAmount)) * 0.01f;
+        os.noiseFilter = jlimit (0, 2, (int) raw (oscParam (o, ParamIDs::noiseFilter)));
+        os.noiseCutoff = raw (oscParam (o, ParamIDs::noiseCutoff));
+        os.noiseReso   = raw (oscParam (o, ParamIDs::noiseReso)) * 0.01f;
         os.pan         = raw (oscParam (o, ParamIDs::pan)) * 0.01f;
         os.gain        = raw (oscParam (o, ParamIDs::level)) * 0.01f;
     }

@@ -4,6 +4,7 @@
 #include "DSP/SynthEngine.h"
 #include "PluginProcessor.h"
 #include "Presets.h"
+#include "UI/VirusComponents.h"
 
 using namespace juce;
 using namespace rs;
@@ -372,6 +373,91 @@ public:
             expectWithinAbsoluteError (sat->getValue(), saved < 0.5f ? 0.0f : 1.0f, 0.1f);
         }
 
+        beginTest ("FM: the other oscillator modulates this one, even at Level 0");
+        {
+            auto render = [] (bool fmOn)
+            {
+                auto p = makeProcessor();
+                setParam (*p, oscParam (0, ParamIDs::retrig), 1.0f);
+                setParam (*p, oscParam (1, ParamIDs::retrig), 1.0f);
+                setParam (*p, oscParam (1, ParamIDs::level), 0.0f);          // modulator silent
+                setParam (*p, oscParam (1, ParamIDs::wave), (float) WaveSine);
+                setParam (*p, oscParam (0, ParamIDs::fmOn), fmOn ? 1.0f : 0.0f);
+                setParam (*p, oscParam (0, ParamIDs::fmAmount), 60.0f);
+                setParam (*p, ParamIDs::satDrive, 36.0f);
+                setParam (*p, ParamIDs::satOn, 1.0f);
+                return renderNote (*p, 40, 0.5);
+            };
+            const auto plain = render (false), fm = render (true);
+            expect (allFinite (fm));
+            float diff = 0.0f;
+            for (int i = 2000; i < 20000; ++i)
+                diff = jmax (diff, std::abs (plain.getSample (0, i) - fm.getSample (0, i)));
+            logMessage ("FM difference " + String (diff, 3));
+            expectGreaterThan (diff, 0.05f);
+        }
+
+        beginTest ("Noise: own LP / HP filter, and PHASE locks the noise pattern");
+        {
+            auto setup = [] (int type, bool lockOn)
+            {
+                auto p = makeProcessor();
+                setParam (*p, oscParam (0, ParamIDs::wave), (float) WaveNoise);
+                setParam (*p, oscParam (1, ParamIDs::level), 0.0f);
+                setParam (*p, oscParam (0, ParamIDs::noiseFilter), (float) type);
+                setParam (*p, oscParam (0, ParamIDs::noiseCutoff), 50.0f);    // ~630 Hz
+                setParam (*p, oscParam (0, ParamIDs::retrig), lockOn ? 1.0f : 0.0f);
+                setParam (*p, ParamIDs::cutoff, 100.0f);
+                setParam (*p, ParamIDs::monoBass, 0.0f);
+                p->reset();     // start from these settings (no smoothing ramps from the defaults)
+                return p;
+            };
+            auto zeroCrossings = [] (const AudioBuffer<float>& b)
+            {
+                int n = 0;
+                for (int i = 1; i < b.getNumSamples(); ++i)
+                    n += (b.getSample (0, i - 1) < 0.0f) != (b.getSample (0, i) < 0.0f) ? 1 : 0;
+                return n;
+            };
+            const int lpZc = zeroCrossings (renderNote (*setup (0, false), 40, 0.3));
+            const int hpZc = zeroCrossings (renderNote (*setup (2, false), 40, 0.3));
+            logMessage ("noise zero crossings: LP " + String (lpZc) + ", HP " + String (hpZc));
+            expectLessThan (lpZc * 3, hpZc);
+
+            // two notes in a row on the same instance
+            auto maxDiffOfTwoNotes = [&] (bool lockOn)
+            {
+                auto p = setup (0, lockOn);
+                const auto a = renderNote (*p, 40, 0.6, 0.15);
+                const auto b = renderNote (*p, 40, 0.6, 0.15);
+                float m = 0.0f;
+                for (int i = 0; i < 6000; ++i)
+                {
+                    const float d = std::abs (a.getSample (0, i) - b.getSample (0, i));
+                    m = jmax (m, d);
+                }
+                return m;
+            };
+            expectLessThan (maxDiffOfTwoNotes (true), 1.0e-5f);       // locked: every note is the same noise
+            expectGreaterThan (maxDiffOfTwoNotes (false), 1.0e-3f);   // free: different noise every note
+        }
+
+        beginTest ("Double-click goes to 0 (or the nearest allowed value)");
+        {
+            auto p = makeProcessor();
+            for (auto [id, expected] : { std::pair<String, double> { oscParam (0, ParamIDs::fine), 0.0 },
+                                         { oscParam (0, ParamIDs::voices), 1.0 },
+                                         { oscParam (0, ParamIDs::pw), 1.0 },
+                                         { ParamIDs::volume, 0.0 } })
+            {
+                VirusKnob knob (VirusKnob::Size::Small, "k");
+                KnobAttachment attachment (*p->apvts.getParameter (id), knob);
+                knob.mouseDoubleClick (MouseEvent (Desktop::getInstance().getMainMouseSource(), {}, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                                   &knob, &knob, Time(), {}, Time(), 2, false));
+                expectWithinAbsoluteError ((double) p->apvts.getRawParameterValue (id)->load(), expected, 1.0e-4, id);
+            }
+        }
+
         beginTest ("State round trip");
         {
             auto p = makeProcessor();
@@ -392,8 +478,6 @@ static FilterTests filterTests;
 static ReeseTests reeseTests;
 
 
-//==============================================================================
-#include "UI/VirusComponents.h"
 
 class KnobTests : public UnitTest
 {

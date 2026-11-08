@@ -154,6 +154,16 @@ void ReesePanel::setupOsc (int o)
     addKnob (c.pan,    oscParam (o, ParamIDs::pan),    formatPan,     n + "Pan");
     addKnob (c.level,  oscParam (o, ParamIDs::level),  formatPercent, n + "Level");
 
+    addToggle (c.fmButton, oscParam (o, ParamIDs::fmOn),
+               n + "FM: Osc " + String (2 - o) + " modulates this oscillator (it works even with its Level at 0)");
+    addKnob (c.fm, oscParam (o, ParamIDs::fmAmount), formatPercent, n + "FM Amount (from Osc " + String (2 - o) + ")");
+    c.fm.inactiveHint = "Turn on this oscillator's FM button";
+    addCombo (c.noiseFilterBox, oscParam (o, ParamIDs::noiseFilter), getNoiseFilterNames(), n + "noise filter type (Noise only)");
+    addKnob (c.noiseCutoff, oscParam (o, ParamIDs::noiseCutoff), formatCutoff, n + "Noise Filter Cutoff");
+    addKnob (c.noiseReso, oscParam (o, ParamIDs::noiseReso), formatPercent, n + "Noise Filter Resonance");
+    c.noiseCutoff.setContinuous (true);
+    c.noiseReso.setContinuous (true);
+
     c.pw.inactiveHint = "Pulse width is used by the Pulse wave";
     c.detune.inactiveHint = "Set VOICES above 1 to spread a unison stack";
     c.phase.inactiveHint = "Turn on this oscillator's PHASE button (or PHASE LOCK) to use the start phase";
@@ -196,19 +206,24 @@ void ReesePanel::resized()
         const int x = 8 + o * 286;
         c.panel = { (float) x, 40.0f, 280.0f, 250.0f };
 
-        c.phaseButton.setBounds (x + 222, 42, 50, 14);
+        c.phaseButton.setBounds (x + 226, 42, 46, 14);
+        c.fmButton.setBounds (x + 184, 42, 38, 14);
         c.waveBox.setBounds (x + 12, 78, 124, 22);
         c.octDown.setBounds (x + 144, 78, 32, 22);
         c.octLcd.setBounds  (x + 179, 78, 58, 22);
         c.octUp.setBounds   (x + 240, 78, 32, 22);
 
-        VirusKnob* row1[] = { &c.semi, &c.fine, &c.voices, &c.detune };
+        // Noise: filter type, cutoff and resonance take the place of Semi / Fine / Voices / Detune
+        c.noiseFilterBox.setBounds (x + 12, 134, 120, 22);
+        c.noiseCutoff.setBounds (x + 140, 112, 64, 72);
+        c.noiseReso.setBounds (x + 204, 112, 64, 72);
+
+        VirusKnob* row1[] = { &c.semi, &c.fine, &c.voices, &c.detune, &c.fm };
         VirusKnob* row2[] = { &c.pw, &c.phase, &c.pan, &c.level };
+        for (int i = 0; i < 5; ++i)
+            row1[i]->setBounds (x + 12 + i * 51, 112, 51, 72);
         for (int i = 0; i < 4; ++i)
-        {
-            row1[i]->setBounds (x + 12 + i * 64, 112, 64, 72);
             row2[i]->setBounds (x + 12 + i * 64, 204, 64, 72);
-        }
     }
 
     // filter
@@ -290,13 +305,20 @@ void ReesePanel::updateActiveStates()
         const int wave = (int) raw (oscParam (o, ParamIDs::wave));
         const bool noise = wave == WaveNoise;
         setActive (c.pw, wave == WavePulse);
-        setActive (c.voices, ! noise);
-        setActive (c.detune, ! noise && roundToInt (raw (oscParam (o, ParamIDs::voices))) > 1);
+        setActive (c.detune, roundToInt (raw (oscParam (o, ParamIDs::voices))) > 1);
         const bool retrig = raw (oscParam (o, ParamIDs::retrig)) > 0.5f;
-        setActive (c.phase, ! noise && (retrig || lock));
-        setActive (c.phaseButton, ! noise);
-        setActive (c.semi, ! noise);
-        setActive (c.fine, ! noise);
+        // Noise: PHASE locks the noise pattern, and the Phase knob picks which pattern
+        setActive (c.phase, noise ? retrig : (retrig || lock));
+        c.phase.inactiveHint = noise ? "Turn on this oscillator's PHASE button to lock the noise pattern"
+                                     : "Turn on this oscillator's PHASE button (or PHASE LOCK) to use the start phase";
+        for (Component* tonal : { (Component*) &c.semi, (Component*) &c.fine, (Component*) &c.voices, (Component*) &c.detune, (Component*) &c.fm })
+            tonal->setVisible (! noise);
+        setActive (c.fmButton, ! noise);
+        setActive (c.fm, raw (oscParam (o, ParamIDs::fmOn)) > 0.5f);
+        for (Component* nc : { (Component*) &c.noiseFilterBox, (Component*) &c.noiseCutoff, (Component*) &c.noiseReso })
+            nc->setVisible (noise);
+        c.phase.describeValue = noise ? std::function<String (float)> ([] (float v) { return "Pattern " + String (roundToInt (v)); })
+                                      : std::function<String (float)> (formatDegrees);
         setActive (c.octDown, ! noise);
         setActive (c.octUp, ! noise);
         c.octLcd.setDimmed (noise);

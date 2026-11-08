@@ -41,6 +41,8 @@ namespace rs
         xoverL.reset();
         xoverR.reset();
         xoverLock.reset();
+        for (auto& f : noiseFilter)
+            f.reset();
         pending = {};
         fadeGain = 1.0f;
         fadeStep = 0.0f;
@@ -103,10 +105,24 @@ namespace rs
             }
             // the phase-locked low band always restarts in phase
             lockPhase[o] = wrap01 (os.phase);
+
+            // Noise with PHASE on: restart the same noise pattern on every note. The Phase
+            // knob picks the pattern (each whole degree is a different, repeatable one).
+            if (os.wave == WaveNoise && os.retrig)
+            {
+                noise[o].seed (0x2545f491u + (std::uint32_t) o * 0x9e3779b9u
+                               + (std::uint32_t) std::lround (os.phase * 360.0f) * 0x85ebca6bu);
+                noiseFilter[o].reset();
+            }
         }
 
         if (wasSilent)
         {
+            for (int o = 0; o < kNumOscs; ++o)
+                fmPrev[o] = fmLockPrev[o] = 0.0f;
+            // the filter envelope can be left part-way through its release when the amp
+            // envelope finishes first; a new note must start its sweep from zero
+            fltEnv.reset();
             filterL.reset();
             filterR.reset();
             xoverL.reset();
@@ -200,37 +216,59 @@ namespace rs
 
                 // oscillators: detuned stereo stack + one coherent mono copy for the low band
                 float dl = 0.0f, dr = 0.0f, lock = 0.0f;
+                float modNow[kNumOscs] {}, lockNow[kNumOscs] {};
                 for (int o = 0; o < kNumOscs; ++o)
                 {
                     const auto& os = s.osc[o];
-                    if (os.gain <= 0.0f)
+                    // an oscillator also runs at Level 0 when it is the other one's FM modulator
+                    if (os.gain <= 0.0f && sh.fmDepth[1 - o] <= 0.0f)
                         continue;
 
                     if (os.wave == WaveNoise)
                     {
-                        const float n = noise[o].next();
+                        // white noise through its own LP / BP / HP filter
+                        float lp, bp, hp;
+                        noiseFilter[o].processAll (noise[o].next(), sh.noiseG[o], sh.noiseK[o], lp, bp, hp);
+                        const float n = os.noiseFilter == 1 ? bp : (os.noiseFilter == 2 ? hp : lp);
                         dl += n * sh.noiseL[o];
                         dr += n * sh.noiseR[o];
                         lock += n * os.gain;
+                        modNow[o] = lockNow[o] = n;
                         continue;
                     }
 
+                    // FM (phase modulation, as in classic FM synths) by the other oscillator's
+                    // previous output sample; the locked low-band copy is modulated by its locked copy
+                    const float fm = sh.fmDepth[o];
+                    const float pm = fm * fmPrev[1 - o];
+                    const float pmLock = fm * fmLockPrev[1 - o];
+
                     const int nv = sh.numVoices[o];
+                    float sum = 0.0f;
                     for (int v = 0; v < nv; ++v)
                     {
                         const float inc = baseInc[o] * sh.ratio[o][v];
                         float& ph = phases[o][v];
-                        const float y = renderWave (os.wave, ph, inc, os.pw);
+                        const float y = renderWave (os.wave, fm > 0.0f ? wrap01 (ph + pm) : ph, inc, os.pw);
                         ph += inc;
                         if (ph >= 1.0f) ph -= 1.0f;
                         dl += y * sh.gainL[o][v];
                         dr += y * sh.gainR[o][v];
+                        sum += y;
                     }
+                    modNow[o] = sum / (float) nv;
 
                     float& lp = lockPhase[o];
-                    lock += renderWave (os.wave, lp, lockInc[o], os.pw) * os.gain;
+                    const float yl = renderWave (os.wave, fm > 0.0f ? wrap01 (lp + pmLock) : lp, lockInc[o], os.pw);
+                    lock += yl * os.gain;
+                    lockNow[o] = yl;
                     lp += lockInc[o];
                     if (lp >= 1.0f) lp -= 1.0f;
+                }
+                for (int o = 0; o < kNumOscs; ++o)
+                {
+                    fmPrev[o] = modNow[o];
+                    fmLockPrev[o] = lockNow[o];
                 }
 
                 // Phase lock: below the crossover the coherent copy replaces the detuned stack,
@@ -325,6 +363,10 @@ namespace rs
             const float angle = (std::clamp (os.pan, -1.0f, 1.0f) + 1.0f) * 0.785398163f;
             shared.noiseL[o] = std::cos (angle) * 1.41421356f * os.gain;
             shared.noiseR[o] = std::sin (angle) * 1.41421356f * os.gain;
+            // FM depth in cycles of phase shift per unit of modulator (up to 2 cycles = ~12.6 rad)
+            shared.fmDepth[o] = os.fmOn ? 2.0f * os.fmAmount * os.fmAmount : 0.0f;
+            shared.noiseG[o] = svfG (20.0f * std::pow (1000.0f, std::clamp (os.noiseCutoff, 0.0f, 100.0f) * 0.01f), (float) sampleRate);
+            shared.noiseK[o] = 1.0f / (0.70710678f + os.noiseReso * os.noiseReso * 11.0f);
 
             if (os.gain > 0.0f && os.wave != WaveNoise)
             {

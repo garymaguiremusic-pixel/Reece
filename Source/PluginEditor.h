@@ -25,6 +25,12 @@ private:
         juce::ComboBox waveBox;
         juce::TextButton octDown { "-12" }, octUp { "+12" };
         juce::TextButton phaseButton { "Phase" };   // off = free running
+        juce::TextButton fmButton { "FM" };          // the other oscillator modulates this one
+        VirusKnob fm { VirusKnob::Size::Small, "FM" };
+        // shown instead of Semi / Fine / Voices / Detune while the wave is Noise
+        juce::ComboBox noiseFilterBox;
+        VirusKnob noiseCutoff { VirusKnob::Size::Small, "Cutoff" };
+        VirusKnob noiseReso   { VirusKnob::Size::Small, "Reso" };
         LcdDisplay octLcd;
         VirusKnob semi   { VirusKnob::Size::Small, "Semi" };
         VirusKnob fine   { VirusKnob::Size::Small, "Fine" };

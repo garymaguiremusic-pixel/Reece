@@ -57,6 +57,12 @@ namespace rs
                 { satOn, 1 }, { satType, 2 }, { satDrive, 18.0f }, { satTone, 70.0f },
                 { cutoff, 57.0f }, { resonance, 25.0f }, { glide, 45.0f }, { playMode, ModeLegato }, { satLevel, -6.0f }, { volume, -9.0f } } },
 
+            { "FM Reese Growl",
+              { { o1 (fmOn), 1 }, { o1 (fmAmount), 32.0f }, { o1 (voices), 3 }, { o1 (detune), 14.0f },
+                { o2 (wave), WaveSine }, { o2 (octave), 1 }, { o2 (fine), 7.0f }, { o2 (level), 18.0f }, { o2 (voices), 1 },
+                { cutoff, 64.0f }, { resonance, 20.0f }, { fltEnv, 25.0f }, { fDecay, 50.0f }, { fSustain, 30.0f },
+                { monoBass, 130.0f }, { volume, -6.0f } } },
+
             { "Poly Reese Stab",
               { { playMode, ModePoly }, { o1 (voices), 3 }, { o2 (voices), 3 }, { o1 (octave), 0 }, { o2 (octave), 0 },
                 { aDecay, 45.0f }, { aSustain, 40.0f }, { aRelease, 40.0f }, { fltEnv, 45.0f }, { fDecay, 45.0f },

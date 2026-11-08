@@ -30,6 +30,11 @@ namespace rs
         inline constexpr const char* pw     = "PW";
         inline constexpr const char* phase  = "Phase";
         inline constexpr const char* retrig = "Retrig";   // the oscillator's PHASE button
+        inline constexpr const char* fmOn     = "FmOn";       // FM: the other oscillator modulates this one
+        inline constexpr const char* fmAmount = "FmAmount";
+        inline constexpr const char* noiseFilter = "NoiseFilter";   // Noise wave only
+        inline constexpr const char* noiseCutoff = "NoiseCutoff";
+        inline constexpr const char* noiseReso   = "NoiseReso";
         inline constexpr const char* pan    = "Pan";
         inline constexpr const char* level  = "Level";
 
@@ -93,6 +98,7 @@ namespace rs
     inline juce::StringArray getWaveNames()      { return { "Saw", "Ramp", "Square", "Pulse", "Triangle", "Sine", "Saw + Square", "Noise" }; }
     inline juce::StringArray getPlayModeNames()  { return { "Mono", "Legato", "Poly" }; }
     inline juce::StringArray getFilterTypeNames(){ return { "Low Pass", "Band Pass", "High Pass" }; }
+    inline juce::StringArray getNoiseFilterNames() { return { "Low Pass", "Band Pass", "High Pass" }; }
     inline juce::StringArray getSlopeNames()     { return { "12 dB/oct", "24 dB/oct", "36 dB/oct" }; }
     inline juce::StringArray getSatTypeNames()   { return { "Soft", "Tape", "Tube", "Hard Clip", "Foldback", "Fuzz" }; }
 
@@ -214,6 +220,11 @@ namespace rs
             addFloat  (oscParam (o, ParamIDs::pw), n + "Pulse Width", { 1.0f, 99.0f }, 50.0f, formatPercent, "%");
             addFloat  (oscParam (o, ParamIDs::phase), n + "Phase", { 0.0f, 360.0f }, 0.0f, formatDegrees, "deg");
             addBool   (oscParam (o, ParamIDs::retrig), n + "Phase Retrigger", false);
+            addBool   (oscParam (o, ParamIDs::fmOn), n + "FM", false);
+            addFloat  (oscParam (o, ParamIDs::fmAmount), n + "FM Amount", { 0.0f, 100.0f }, 0.0f, formatPercent, "%");
+            addChoice (oscParam (o, ParamIDs::noiseFilter), n + "Noise Filter", getNoiseFilterNames(), 0);
+            addFloat  (oscParam (o, ParamIDs::noiseCutoff), n + "Noise Cutoff", { 0.0f, 100.0f }, 100.0f, formatCutoff);
+            addFloat  (oscParam (o, ParamIDs::noiseReso), n + "Noise Resonance", { 0.0f, 100.0f }, 0.0f, formatPercent, "%");
             addFloat  (oscParam (o, ParamIDs::pan), n + "Pan", { -100.0f, 100.0f }, 0.0f, formatPan);
             addFloat  (oscParam (o, ParamIDs::level), n + "Level", { 0.0f, 100.0f }, 80.0f, formatPercent, "%");
         }

@@ -39,6 +39,20 @@ namespace rs
             hp = v0 - k * v1 - v2;
             return v2;
         }
+
+        /** All three outputs. Band-pass is normalised to unity gain at the centre. */
+        inline void processAll (float v0, float g, float k, float& lp, float& bp, float& hp) noexcept
+        {
+            const float a1 = 1.0f / (1.0f + g * (g + k));
+            const float v3 = v0 - ic2;
+            const float v1 = a1 * ic1 + g * a1 * v3;
+            const float v2 = ic2 + g * v1;
+            ic1 = 2.0f * v1 - ic1;
+            ic2 = 2.0f * v2 - ic2;
+            lp = v2;
+            bp = k * v1;
+            hp = v0 - k * v1 - v2;
+        }
     };
 
     /**
