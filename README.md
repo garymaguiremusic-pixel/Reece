@@ -48,6 +48,10 @@ It appears as an instrument under **VirusDelay Project**.
 ## Voice
 
 * **Mode**: Mono (retriggers the envelopes), Legato (glides without retriggering), Poly (8 notes).
+* **Legato** also joins a note that starts just as the previous one ends (within 30 ms). For example, when
+  the DAW loops back and ends the last note right at the loop point, the first note carries on without
+  restarting the envelopes or oscillators, so there is no click. A note-on that arrives before the note-off
+  of the same pitch (tied notes) also keeps sounding.
 * **Glide** (Mono / Legato). If a still-sounding voice has to restart its oscillators (Phase button or
   Phase Lock), it fades out over 3 ms first, so the restart doesn't click.
 

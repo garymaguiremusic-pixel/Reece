@@ -384,7 +384,7 @@ void HelpOverlay::paint (Graphics& g)
         "FILTER:  analog-style Low / Band / High Pass, 12, 24 or 36 dB/oct. Cutoff and Resonance move smoothly",
         "SPREAD:  stereo width. Left = mono, centre = 100 %, right = 200 %",
         "SATURATION:  the KickDrum saturation (Soft, Tape, Tube, Hard Clip, Foldback, Fuzz), 4x oversampled",
-        "MODE:  Mono (retrigger), Legato (glide without retrigger) or Poly (8 notes).  GLIDE:  portamento time",
+        "MODE:  Mono (retrigger), Legato (no retrigger, also across loop points) or Poly (8 notes).  GLIDE:  portamento",
         "SYNC (envelopes):  Attack / Decay / Release lock to the tempo: 1/512, 1/256 ... 1/2, 1/1 (one step per value)",
         "Knobs move in steps of 1; hold Shift for 0.1 steps. Scroll wheel too. Double-click = 0.",
         "Drag the bottom-right corner to resize the window.",

@@ -182,6 +182,8 @@ namespace rs
         /** Starts the attack from the current level (no click when retriggered while sounding). */
         void noteOn() noexcept    { stage = Stage::Attack; }
         void noteOff() noexcept   { if (stage != Stage::Idle) stage = Stage::Release; }
+        /** Legato back into a released note: glide from the current level to the sustain level. */
+        void resume() noexcept    { if (stage == Stage::Release) stage = Stage::Decay; }
         void reset() noexcept     { stage = Stage::Idle; level = 0.0f; }
 
         bool isActive() const noexcept   { return stage != Stage::Idle; }

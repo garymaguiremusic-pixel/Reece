@@ -139,10 +139,15 @@ namespace rs
         if (pending.waiting)
         {
             pending.note = newNote;
+            pending.releaseAfter = false;
+            held = true;
             return;
         }
         held = true;
         note = newNote;
+        // picking up a note that was just let go: carry on from where the envelopes are
+        ampEnv.resume();
+        fltEnv.resume();
         targetPitch = (float) newNote;
         if (s.glideMs <= 0.0f)
             pitch = targetPitch;
@@ -315,6 +320,8 @@ namespace rs
         for (auto& v : voices)
             v.reset();
         stackSize = 0;
+        std::fill (std::begin (heldCount), std::end (heldCount), 0);
+        samplesSinceRelease = 1 << 30;
         firstBlock = true;
     }
 
@@ -426,6 +433,8 @@ namespace rs
             return;
         }
 
+        heldCount[note & 127] = std::min (heldCount[note & 127] + 1, 255);
+
         // Mono / Legato: one voice, last-note priority
         const bool othersHeld = stackSize > 0;
         for (int i = 0; i < stackSize; ++i)
@@ -438,8 +447,12 @@ namespace rs
         if (stackSize < (int) std::size (noteStack))
             noteStack[stackSize++] = note;
 
+        // Legato also covers a note that starts just as the previous one ends (within 30 ms), e.g.
+        // when the DAW loops back to bar 1 and ends the last note right at the loop point: the
+        // sound carries on without restarting the envelopes or the oscillators.
         auto& v = voices[0];
-        if (settings.playMode == ModeLegato && othersHeld && v.isActive())
+        const bool justReleased = v.isActive() && samplesSinceRelease <= (std::int64_t) (0.03 * sampleRate);
+        if (settings.playMode == ModeLegato && v.isActive() && (othersHeld || justReleased))
             v.legatoTo (note, settings);
         else
             v.start (note, vel, v.isActive(), settings);
@@ -447,6 +460,16 @@ namespace rs
 
     void SynthEngine::noteOff (int note)
     {
+        // The same pitch can overlap itself (a new note-on before the old note-off, common at
+        // loop points and between tied notes). Only the last note-off of that pitch counts.
+        auto& count = heldCount[note & 127];
+        if (count > 1)
+        {
+            --count;
+            return;
+        }
+        count = 0;
+
         if (settings.playMode == ModePoly)
         {
             for (auto& v : voices)
@@ -466,7 +489,10 @@ namespace rs
 
         auto& v = voices[0];
         if (stackSize == 0)
+        {
             v.release();
+            samplesSinceRelease = 0;
+        }
         else if (wasTop)
             v.legatoTo (noteStack[stackSize - 1], settings);   // back to the note still held
     }
@@ -474,6 +500,8 @@ namespace rs
     void SynthEngine::allNotesOff()
     {
         stackSize = 0;
+        std::fill (std::begin (heldCount), std::end (heldCount), 0);
+        samplesSinceRelease = 0;
         for (auto& v : voices)
             if (v.isActive())
                 v.release();
@@ -489,6 +517,7 @@ namespace rs
 
     void SynthEngine::render (float* left, float* right, int numSamples) noexcept
     {
+        samplesSinceRelease += numSamples;
         for (int pos = 0; pos < numSamples; pos += ChunkShared::kMax)
             renderChunk (left + pos, right + pos, std::min (ChunkShared::kMax, numSamples - pos));
     }

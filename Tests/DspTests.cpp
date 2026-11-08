@@ -458,6 +458,76 @@ public:
             }
         }
 
+        beginTest ("Legato: a note starting as the previous one ends (DAW loop point) carries on smoothly");
+        {
+            // events: (sample, note, on). Returns the audio.
+            auto play = [] (int mode, std::vector<std::tuple<int, int, bool>> events, int total)
+            {
+                auto p = makeProcessor();
+                setParam (*p, ParamIDs::playMode, (float) mode);
+                setParam (*p, oscParam (0, ParamIDs::retrig), 1.0f);     // worst case: phases restart
+                setParam (*p, oscParam (1, ParamIDs::retrig), 1.0f);
+                setParam (*p, ParamIDs::phaseLock, 90.0f);
+                p->reset();
+                AudioBuffer<float> out (2, total), buffer (2, 256);
+                for (int pos = 0; pos < total; pos += 256)
+                {
+                    MidiBuffer midi;
+                    for (auto [at, note, on] : events)
+                        if (at >= pos && at < pos + 256)
+                            midi.addEvent (on ? MidiMessage::noteOn (1, note, 0.8f) : MidiMessage::noteOff (1, note), at - pos);
+                    p->processBlock (buffer, midi);
+                    for (int ch = 0; ch < 2; ++ch)
+                        out.copyFrom (ch, pos, buffer, ch, 0, 256);
+                }
+                return out;
+            };
+            auto rms = [] (const AudioBuffer<float>& b, int from, int len)
+            {
+                double acc = 0.0;
+                for (int i = from; i < from + len; ++i)
+                    acc += (double) b.getSample (0, i) * b.getSample (0, i);
+                return (float) std::sqrt (acc / len);
+            };
+
+            const int loop = 24000, total = 256 * 141;   // whole blocks
+            const int latency = makeProcessor()->getLatencySamples();
+            const int at = loop + latency;
+            for (int mode : { (int) ModeLegato, (int) ModeMono })
+                for (int nextNote : { 31, 36 })
+                {
+                    // note-off of the last note and the next note-on on the same sample
+                    const auto off_then_on = play (mode, { { 0, 36, true }, { loop, 36, false }, { loop, nextNote, true } }, total);
+                    // ...and the order some DAWs use for tied notes: note-on first
+                    const auto on_then_off = play (mode, { { 0, 36, true }, { loop, nextNote, true }, { loop, 36, false } }, total);
+
+                    for (auto* audio : { &off_then_on, &on_then_off })
+                    {
+                        const float before = rms (*audio, at - 2400, 2400);
+                        const float dip = rms (*audio, at, 960);   // first 20 ms (longer than one bass cycle)
+                        const float later = rms (*audio, at + 4800, 2400);
+                        const String what = String (mode == ModeLegato ? "legato" : "mono") + " note " + String (nextNote)
+                                            + (audio == &off_then_on ? " off->on" : " on->off");
+                        logMessage (what + ": before " + String (before, 3) + ", first 20 ms " + String (dip, 3) + ", later " + String (later, 3));
+                        expectGreaterThan (later, before * 0.5f, what + " keeps sounding");
+                        if (mode == ModeLegato)
+                            expectGreaterThan (dip, before * 0.85f, what + " has no dip");
+                    }
+
+                    // Same pitch in Legato: exactly as if the note had simply been held through the loop point
+                    if (mode == ModeLegato && nextNote == 36)
+                    {
+                        const auto held = play (mode, { { 0, 36, true } }, total);
+                        float diff = 0.0f;
+                        for (int i = 0; i < total; ++i)
+                            diff = jmax (diff, std::abs (held.getSample (0, i) - off_then_on.getSample (0, i)),
+                                               std::abs (held.getSample (0, i) - on_then_off.getSample (0, i)));
+                        logMessage ("legato same pitch vs held: max difference " + String (diff, 6));
+                        expectLessThan (diff, 0.01f);
+                    }
+                }
+        }
+
         beginTest ("State round trip");
         {
             auto p = makeProcessor();

@@ -151,6 +151,8 @@ namespace rs
 
         int noteStack[32] {};
         int stackSize = 0;
+        int heldCount[128] {};                       // note-ons minus note-offs per pitch
+        std::int64_t samplesSinceRelease = 1 << 30;  // since the mono voice was last let go
         float bendSemis = 0.0f;
 
         // smoothed controls (one-pole, per sample)
