@@ -52,6 +52,7 @@ private:
     float lastDragY = 0.0f;
     double dragValue = 0.0;          // un-snapped drag position
     bool dragShift = false, continuous = false;
+    bool ignoreDrag = false;         // set by a double-click until the button is released
     bool dragging = false, hovering = false;
 };
 

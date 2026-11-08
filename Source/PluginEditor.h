@@ -24,6 +24,7 @@ private:
     {
         juce::ComboBox waveBox;
         juce::TextButton octDown { "-12" }, octUp { "+12" };
+        juce::TextButton phaseButton { "Phase" };   // off = free running
         LcdDisplay octLcd;
         VirusKnob semi   { VirusKnob::Size::Small, "Semi" };
         VirusKnob fine   { VirusKnob::Size::Small, "Fine" };
@@ -63,7 +64,6 @@ private:
     VirusKnob keyTrackKnob  { VirusKnob::Size::Small, "Key Track" };
     VirusKnob fAttack  { VirusKnob::Size::Small, "Attack" }, fDecay   { VirusKnob::Size::Small, "Decay" };
     VirusKnob fSustain { VirusKnob::Size::Small, "Sustain" }, fRelease { VirusKnob::Size::Small, "Release" };
-    LcdDisplay cutoffLcd;
 
     // Envelope tempo sync: note-value knobs that replace Attack / Decay / Release while Sync is on
     juce::TextButton fSyncButton { "Sync" }, aSyncButton { "Sync" };
@@ -74,7 +74,6 @@ private:
 
     // Voice
     juce::ComboBox playModeBox;
-    juce::TextButton retrigButton { "Retrig" };
     VirusKnob glideKnob { VirusKnob::Size::Small, "Glide" };
 
     // Low end / stereo / output
@@ -108,6 +107,7 @@ private:
 
     juce::Rectangle<float> filterPanel, voicePanel, lowPanel, stereoPanel, satPanel, ampPanel;
     int lastShownProgram = -1;
+    juce::String cutoffText;                  // shown in the Filter header
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReesePanel)
 };

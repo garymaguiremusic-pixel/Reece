@@ -15,6 +15,7 @@ namespace rs
         float detuneCents = 0.0f;    // unison spread (outer voices sit at +- this)
         float pw = 0.5f;             // 0..1
         float phase = 0.0f;          // start phase 0..1
+        bool retrig = false;         // PHASE button: restart at 'phase' on every note (off = free running)
         float pan = 0.0f;            // -1..1
         float gain = 0.8f;           // 0..1
     };
@@ -24,7 +25,6 @@ namespace rs
         OscSettings osc[kNumOscs];
         int playMode = ModeMono;
         float glideMs = 0.0f;
-        bool retrig = true;
         float phaseLockHz = 0.0f;    // 0 = off
 
         int filterType = FilterLP;

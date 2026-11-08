@@ -58,13 +58,13 @@ EngineSettings ReeseAudioProcessor::makeEngineSettings() const
         os.detuneCents = raw (oscParam (o, ParamIDs::detune));
         os.pw          = raw (oscParam (o, ParamIDs::pw)) * 0.01f;
         os.phase       = raw (oscParam (o, ParamIDs::phase)) / 360.0f;
+        os.retrig      = raw (oscParam (o, ParamIDs::retrig)) > 0.5f;
         os.pan         = raw (oscParam (o, ParamIDs::pan)) * 0.01f;
         os.gain        = raw (oscParam (o, ParamIDs::level)) * 0.01f;
     }
 
     s.playMode    = jlimit (0, 2, (int) raw (ParamIDs::playMode));
     s.glideMs     = glideToMs (raw (ParamIDs::glide));
-    s.retrig      = raw (ParamIDs::retrig) > 0.5f;
     s.phaseLockHz = raw (ParamIDs::phaseLock);
 
     s.filterType   = jlimit (0, 2, (int) raw (ParamIDs::fltType));

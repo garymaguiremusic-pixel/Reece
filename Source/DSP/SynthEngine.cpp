@@ -49,7 +49,12 @@ namespace rs
 
     bool Voice::willResetPhases (const EngineSettings& s) const noexcept
     {
-        return s.retrig || s.phaseLockHz >= 1.0f;
+        if (s.phaseLockHz >= 1.0f)
+            return true;
+        for (const auto& os : s.osc)
+            if (os.retrig && os.gain > 0.0f)
+                return true;
+        return false;
     }
 
     void Voice::start (int newNote, float vel, bool glideFromCurrent, const EngineSettings& s)
@@ -84,14 +89,15 @@ namespace rs
         for (int o = 0; o < kNumOscs; ++o)
         {
             const auto& os = s.osc[o];
-            if (s.retrig)
+            if (os.retrig)
             {
                 for (int i = 0; i < kMaxUnison; ++i)
                     phases[o][i] = wrap01 (os.phase + unisonPhaseOffset (i));
             }
             else if (wasSilent)
             {
-                // free running: a fresh voice starts each unison voice at a random phase
+                // free running: a fresh voice starts each unison voice at a random phase,
+                // a sounding voice just keeps running
                 for (int i = 0; i < kMaxUnison; ++i)
                     phases[o][i] = wrap01 (random.next());
             }

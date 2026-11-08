@@ -29,13 +29,13 @@ namespace rs
         inline constexpr const char* detune = "Detune";
         inline constexpr const char* pw     = "PW";
         inline constexpr const char* phase  = "Phase";
+        inline constexpr const char* retrig = "Retrig";   // the oscillator's PHASE button
         inline constexpr const char* pan    = "Pan";
         inline constexpr const char* level  = "Level";
 
         // Voice
         inline constexpr const char* playMode = "playMode";
         inline constexpr const char* glide    = "glide";
-        inline constexpr const char* retrig   = "retrig";
 
         // Low end
         inline constexpr const char* monoBass  = "monoBass";
@@ -213,6 +213,7 @@ namespace rs
             addFloat  (oscParam (o, ParamIDs::detune), n + "Detune", { 0.0f, 100.0f }, 12.0f, [] (float v) { return trimmed (v) + " ct"; }, "ct");
             addFloat  (oscParam (o, ParamIDs::pw), n + "Pulse Width", { 1.0f, 99.0f }, 50.0f, formatPercent, "%");
             addFloat  (oscParam (o, ParamIDs::phase), n + "Phase", { 0.0f, 360.0f }, 0.0f, formatDegrees, "deg");
+            addBool   (oscParam (o, ParamIDs::retrig), n + "Phase Retrigger", false);
             addFloat  (oscParam (o, ParamIDs::pan), n + "Pan", { -100.0f, 100.0f }, 0.0f, formatPan);
             addFloat  (oscParam (o, ParamIDs::level), n + "Level", { 0.0f, 100.0f }, 80.0f, formatPercent, "%");
         }
@@ -220,11 +221,10 @@ namespace rs
         // Voice ---------------------------------------------------------------------------
         addChoice (ParamIDs::playMode, "Play Mode", getPlayModeNames(), ModeMono);
         addFloat  (ParamIDs::glide, "Glide", { 0.0f, 100.0f }, 0.0f, formatGlide);
-        addBool   (ParamIDs::retrig, "Osc Retrigger", true);
 
         // Low end -------------------------------------------------------------------------
         addFloat (ParamIDs::monoBass, "Mono Bass", { 0.0f, 200.0f }, 120.0f, formatLowHz, "Hz");
-        addFloat (ParamIDs::phaseLock, "Phase Lock", { 0.0f, 200.0f }, 90.0f, formatLowHz, "Hz");
+        addFloat (ParamIDs::phaseLock, "Phase Lock", { 0.0f, 200.0f }, 0.0f, formatLowHz, "Hz");
 
         // Filter --------------------------------------------------------------------------
         addChoice (ParamIDs::fltType, "Filter Type", getFilterTypeNames(), FilterLP);

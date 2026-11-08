@@ -36,11 +36,9 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     addKnob (fRelease, ParamIDs::fRelease, formatEnvTime, "Filter Release");
     cutoffKnob.setContinuous (true);       // the filter moves smoothly, with no steps
     resonanceKnob.setContinuous (true);
-    addAndMakeVisible (cutoffLcd);
 
     // Voice ----------------------------------------------------------------------------------
     addCombo (playModeBox, ParamIDs::playMode, getPlayModeNames(), "Mono (retrigger), Legato (glide, no retrigger) or Poly (8 notes)");
-    addToggle (retrigButton, ParamIDs::retrig, "Retrigger: restart the oscillators at their PHASE on every new note");
     addKnob (glideKnob, ParamIDs::glide, formatGlide, "Glide Time");
 
     // Low end / stereo / output ------------------------------------------------------------
@@ -158,7 +156,9 @@ void ReesePanel::setupOsc (int o)
 
     c.pw.inactiveHint = "Pulse width is used by the Pulse wave";
     c.detune.inactiveHint = "Set VOICES above 1 to spread a unison stack";
-    c.phase.inactiveHint = "Used when RETRIG or PHASE LOCK is on";
+    c.phase.inactiveHint = "Turn on this oscillator's PHASE button (or PHASE LOCK) to use the start phase";
+    addToggle (c.phaseButton, oscParam (o, ParamIDs::retrig),
+               n + "Phase: off = free running. On = restart at the PHASE knob on every new note");
 
     c.octDown.setTooltip (n + "down one octave (-12 semitones)");
     c.octUp.setTooltip (n + "up one octave (+12 semitones)");
@@ -196,6 +196,7 @@ void ReesePanel::resized()
         const int x = 8 + o * 286;
         c.panel = { (float) x, 40.0f, 280.0f, 250.0f };
 
+        c.phaseButton.setBounds (x + 222, 42, 50, 14);
         c.waveBox.setBounds (x + 12, 78, 124, 22);
         c.octDown.setBounds (x + 144, 78, 32, 22);
         c.octLcd.setBounds  (x + 179, 78, 58, 22);
@@ -215,10 +216,9 @@ void ReesePanel::resized()
     filterTypeBox.setBounds (592, 78, 130, 22);
     slopeBox.setBounds (730, 78, 130, 22);
     cutoffKnob.setBounds (592, 106, 96, 96);
-    resonanceKnob.setBounds (696, 106, 56, 70);
-    envAmtKnob.setBounds (752, 106, 56, 70);
-    keyTrackKnob.setBounds (808, 106, 56, 70);
-    cutoffLcd.setBounds (698, 180, 164, 22);
+    resonanceKnob.setBounds (698, 118, 56, 72);
+    envAmtKnob.setBounds (754, 118, 56, 72);
+    keyTrackKnob.setBounds (810, 118, 56, 72);
     {
         VirusKnob* env[] = { &fAttack, &fDecay, &fSustain, &fRelease };
         VirusKnob* sync[] = { &fAttackSync, &fDecaySync, nullptr, &fReleaseSync };
@@ -238,8 +238,7 @@ void ReesePanel::resized()
     satPanel    = { 418.0f, 296.0f, 258.0f, 108.0f };
     ampPanel    = { 682.0f, 296.0f, 190.0f, 108.0f };
 
-    playModeBox.setBounds (16, 330, 68, 21);
-    retrigButton.setBounds (16, 362, 68, 21);
+    playModeBox.setBounds (16, 346, 68, 21);
     glideKnob.setBounds (86, 320, 48, 72);
 
     monoBassKnob.setBounds (148, 320, 64, 72);
@@ -283,7 +282,6 @@ void ReesePanel::setActive (Component& c, bool active)
 
 void ReesePanel::updateActiveStates()
 {
-    const bool retrig = raw (ParamIDs::retrig) > 0.5f;
     const bool lock = raw (ParamIDs::phaseLock) >= 1.0f;
 
     for (int o = 0; o < kNumOscs; ++o)
@@ -294,7 +292,9 @@ void ReesePanel::updateActiveStates()
         setActive (c.pw, wave == WavePulse);
         setActive (c.voices, ! noise);
         setActive (c.detune, ! noise && roundToInt (raw (oscParam (o, ParamIDs::voices))) > 1);
+        const bool retrig = raw (oscParam (o, ParamIDs::retrig)) > 0.5f;
         setActive (c.phase, ! noise && (retrig || lock));
+        setActive (c.phaseButton, ! noise);
         setActive (c.semi, ! noise);
         setActive (c.fine, ! noise);
         setActive (c.octDown, ! noise);
@@ -430,6 +430,15 @@ void ReesePanel::paint (Graphics& g)
     }
 
     CustomLookAndFeel::drawPanel (g, filterPanel, "Filter");
+    {
+        // cutoff readout in the header bar, right-aligned
+        auto header = filterPanel.withHeight (18.0f).reduced (10.0f, 0.0f);
+        g.setFont (CustomLookAndFeel::uiFont (10.5f, true));
+        g.setColour (Colours::black.withAlpha (0.45f));
+        g.drawText (cutoffText, header.translated (0.0f, 1.0f), Justification::centredRight);
+        g.setColour (Colour (0xffc9e6ff));
+        g.drawText (cutoffText, header, Justification::centredRight);
+    }
     CustomLookAndFeel::drawSmallLabel (g, "Type", { 592.0f, 64.0f, 130.0f, 12.0f }, Justification::centredLeft);
     CustomLookAndFeel::drawSmallLabel (g, "Slope", { 730.0f, 64.0f, 130.0f, 12.0f }, Justification::centredLeft);
     {
@@ -445,7 +454,7 @@ void ReesePanel::paint (Graphics& g)
     }
 
     CustomLookAndFeel::drawPanel (g, voicePanel,  "Voice");
-    CustomLookAndFeel::drawSmallLabel (g, "Mode", { 16.0f, 317.0f, 68.0f, 12.0f }, Justification::centredLeft);
+    CustomLookAndFeel::drawSmallLabel (g, "Mode", { 16.0f, 332.0f, 68.0f, 12.0f }, Justification::centredLeft);
     CustomLookAndFeel::drawPanel (g, lowPanel,    "Low End");
     CustomLookAndFeel::drawPanel (g, stereoPanel, "Stereo / Output");
     CustomLookAndFeel::drawPanel (g, satPanel,    "Saturation");
@@ -482,7 +491,12 @@ void ReesePanel::timerCallback()
     for (int o = 0; o < kNumOscs; ++o)
         osc[o].octLcd.setContent ({}, formatOctave (roundToInt (raw (oscParam (o, ParamIDs::octave)))) + " st");
 
-    cutoffLcd.setContent ("CUTOFF", formatCutoff (raw (ParamIDs::cutoff)));
+    const auto newCutoffText = formatCutoff (raw (ParamIDs::cutoff));
+    if (newCutoffText != cutoffText)
+    {
+        cutoffText = newCutoffText;
+        repaint (filterPanel.withHeight (19.0f).toNearestInt());
+    }
     updateActiveStates();
 
     scope.update (gui.scopeL, gui.scopeR, ReeseAudioProcessor::GuiState::kScopeSize,

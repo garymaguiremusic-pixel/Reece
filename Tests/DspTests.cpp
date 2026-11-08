@@ -262,10 +262,22 @@ public:
             expectLessThan (diff, 1.0e-4f);
         }
 
-        beginTest ("Retrig makes every note start the same way");
+        beginTest ("By default the oscillators are free running (notes start differently)");
         {
             auto p = makeProcessor();
-            setParam (*p, ParamIDs::retrig, 1.0f);
+            const auto a = renderNote (*p, 36, 0.6, 0.2);
+            const auto b = renderNote (*p, 36, 0.6, 0.2);
+            float diff = 0.0f;
+            for (int i = 0; i < 4000; ++i)
+                diff = jmax (diff, std::abs (a.getSample (0, i) - b.getSample (0, i)));
+            expectGreaterThan (diff, 1.0e-2f);
+        }
+
+        beginTest ("With PHASE on for both oscillators every note starts the same way");
+        {
+            auto p = makeProcessor();
+            setParam (*p, oscParam (0, ParamIDs::retrig), 1.0f);
+            setParam (*p, oscParam (1, ParamIDs::retrig), 1.0f);
             setParam (*p, oscParam (0, ParamIDs::voices), 4);
             const auto a = renderNote (*p, 36, 0.6, 0.2);
             const auto b = renderNote (*p, 36, 0.6, 0.2);
@@ -366,3 +378,50 @@ static OscillatorTests oscillatorTests;
 static FilterTests filterTests;
 static ReeseTests reeseTests;
 
+
+//==============================================================================
+#include "UI/VirusComponents.h"
+
+class KnobTests : public UnitTest
+{
+public:
+    KnobTests() : UnitTest ("Knobs", "UI") {}
+
+    void runTest() override
+    {
+        beginTest ("Double-click resets, even if the mouse wobbles before release");
+        for (bool continuous : { false, true })
+        {
+            VirusKnob knob (VirusKnob::Size::Small, "Test");
+            knob.setSize (60, 70);
+            knob.setRange (0.0, 100.0, 0.0);
+            knob.setDefaultValue (50.0);
+            knob.setContinuous (continuous);
+            knob.setValue (80.0);
+
+            auto source = Desktop::getInstance().getMainMouseSource();
+            auto event = [&] (float y, int clicks)
+            {
+                return MouseEvent (source, { 30.0f, y }, ModifierKeys::leftButtonModifier, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                   &knob, &knob, Time::getCurrentTime(), { 30.0f, 30.0f }, Time::getCurrentTime(), clicks, false);
+            };
+
+            knob.mouseDown (event (30.0f, 1));
+            knob.mouseUp (event (30.0f, 1));
+            knob.mouseDown (event (30.0f, 2));
+            knob.mouseDoubleClick (event (30.0f, 2));
+            knob.mouseDrag (event (29.0f, 2));     // a 1-pixel wobble while releasing
+            knob.mouseDrag (event (31.5f, 2));
+            knob.mouseUp (event (31.5f, 2));
+            expectWithinAbsoluteError (knob.getValue(), 50.0, 1.0e-9, continuous ? "continuous" : "stepped");
+
+            // a normal drag afterwards still works
+            knob.mouseDown (event (30.0f, 1));
+            knob.mouseDrag (event (20.0f, 1));
+            knob.mouseUp (event (20.0f, 1));
+            expectGreaterThan (knob.getValue(), 50.5);
+        }
+    }
+};
+
+static KnobTests knobTests;

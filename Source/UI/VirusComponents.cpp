@@ -85,6 +85,7 @@ void VirusKnob::mouseDown (const MouseEvent& e)
         return;
 
     dragging = true;
+    ignoreDrag = false;
     lastDragY = e.position.y;
     dragValue = getValue();
     dragShift = e.mods.isShiftDown();
@@ -94,7 +95,7 @@ void VirusKnob::mouseDown (const MouseEvent& e)
 
 void VirusKnob::mouseDrag (const MouseEvent& e)
 {
-    if (! isEnabled() || ! dragging)
+    if (! isEnabled() || ! dragging || ignoreDrag)
         return;
 
     const bool shift = e.mods.isShiftDown();
@@ -139,8 +140,15 @@ void VirusKnob::mouseUp (const MouseEvent&)
 
 void VirusKnob::mouseDoubleClick (const MouseEvent&)
 {
-    if (isEnabled())
-        setValueWithGesture (defaultValue);
+    if (! isEnabled())
+        return;
+
+    // The second click of a double-click also starts a drag. Ignore it until the button
+    // goes up, or the slightest movement would put the knob straight back where it was.
+    ignoreDrag = true;
+    dragValue = defaultValue;
+    setValue (jlimit (getMinimum(), getMaximum(), defaultValue), sendNotificationSync);
+    repaint();
 }
 
 void VirusKnob::mouseWheelMove (const MouseEvent& e, const MouseWheelDetails& wheel)
@@ -366,8 +374,8 @@ void HelpOverlay::paint (Graphics& g)
         "OSC 1 / OSC 2:  Saw, Ramp, Square, Pulse (PW), Triangle, Sine, Saw + Square, Noise",
         "-12 / +12:  shift the oscillator down or up an octave.  SEMI / FINE:  tuning (FINE detunes in cents)",
         "VOICES / DETUNE:  unison stack (1 - 8) spread across +- DETUNE cents and across the stereo field",
-        "PHASE:  where the oscillator starts when it is retriggered.  PAN / LEVEL:  placement and volume",
-        "RETRIG:  restart the oscillators on every new note, so each note starts the same way",
+        "PHASE button (each osc):  off = free running. On = restart at the PHASE knob on every new note",
+        "PAN / LEVEL:  placement and volume of each oscillator",
         "MONO BASS:  everything below this frequency is summed to mono (Off - 200 Hz)",
         "PHASE LOCK:  below this frequency the oscillators are retriggered and held in phase, so the sub",
         "        never beats or cancels; above it the detuned Reese movement stays (Off - 200 Hz)",

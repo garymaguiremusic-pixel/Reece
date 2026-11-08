@@ -24,13 +24,15 @@ It appears as an instrument under **VirusDelay Project**.
 * **Semi** (-12 to +12) and **Fine** (-100 to +100 cents). Fine is the classic Reese detune between the two oscillators.
 * **Voices** (1-8) and **Detune** (0-100 cents): a unison stack spread symmetrically across +-Detune
   and fanned out across the stereo field.
-* **PW** (Pulse wave), **Phase** (start phase when retriggered), **Pan**, **Level**.
+* **PW** (Pulse wave), **Pan**, **Level**.
+* **Phase** button (in each oscillator's header): off by default, so the oscillator is **free running**.
+  Turn it on to restart that oscillator at the **Phase** knob's angle on every new note.
 
 ## Low end
 
 * **Mono Bass** (Off-200 Hz): everything below this frequency is summed to mono (Linkwitz-Riley 24 dB/oct
   crossover, so the split is flat). It runs after the stereo spread, so the lows stay mono even at 200 %.
-* **Phase Lock** (Off-200 Hz): below this frequency the oscillators are retriggered on each note and kept
+* **Phase Lock** (Off-200 Hz, Off by default): below this frequency the oscillators are retriggered on each note and kept
   in phase, so the sub never beats or cancels. Above it you still get all the detuned Reese movement.
   How it works: each voice also runs one coherent copy of each oscillator (no detune or unison spread, phase
   reset at note-on). That copy supplies the band below the crossover, and the detuned stack supplies the band
@@ -40,9 +42,8 @@ It appears as an instrument under **VirusDelay Project**.
 ## Voice
 
 * **Mode**: Mono (retriggers the envelopes), Legato (glides without retriggering), Poly (8 notes).
-* **Glide** (Mono / Legato), and **Retrig**, which restarts the oscillators at their Phase on every
-  new note so every note starts the same way. If a still-sounding voice is restarted, it fades out over
-  3 ms first, so the restart doesn't click.
+* **Glide** (Mono / Legato). If a still-sounding voice has to restart its oscillators (Phase button or
+  Phase Lock), it fades out over 3 ms first, so the restart doesn't click.
 
 ## Filter
 
@@ -73,7 +74,7 @@ the current tempo. Sustain stays a level. Switching Sync off goes back to the fr
 
 * Every knob moves in steps of **1.0** when you drag or use the mouse wheel. Hold **Shift** for **0.1** steps.
   Cutoff and Reso are the exception and move continuously. Double-click a knob to reset it, and hover
-  to see its value in real units.
+  to see its value in real units. The cutoff frequency is shown in the Filter header.
 * The window is resizable from the bottom-right corner (70-200 %) and remembers its size.
 * 9 factory presets.
 
