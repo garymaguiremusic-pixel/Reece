@@ -28,6 +28,7 @@ public:
 
     std::function<void()> onGestureBegin, onGestureEnd;
     std::function<juce::String (float)> describeValue;   // real units for the label and tooltip
+    std::function<juce::String (float)> tooltipValue;    // optional longer value text for the tooltip
     juce::String tooltipName;                            // tooltip title (defaults to the label)
     juce::String inactiveHint;                           // shown in the tooltip while disabled
 

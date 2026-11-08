@@ -43,6 +43,7 @@ private:
     void setupOsc (int index);
     void stepOctave (int osc, int delta);
     void updateActiveStates();
+    void addSyncKnob (VirusKnob&, const juce::String& id, const juce::String& tooltipName);
     void createBackground();
     void drawWordmark (juce::Graphics&, juce::Rectangle<float> area);
     static void setActive (juce::Component&, bool active);
@@ -63,6 +64,13 @@ private:
     VirusKnob fAttack  { VirusKnob::Size::Small, "Attack" }, fDecay   { VirusKnob::Size::Small, "Decay" };
     VirusKnob fSustain { VirusKnob::Size::Small, "Sustain" }, fRelease { VirusKnob::Size::Small, "Release" };
     LcdDisplay cutoffLcd;
+
+    // Envelope tempo sync: note-value knobs that replace Attack / Decay / Release while Sync is on
+    juce::TextButton fSyncButton { "Sync" }, aSyncButton { "Sync" };
+    VirusKnob fAttackSync  { VirusKnob::Size::Small, "Attack" }, fDecaySync { VirusKnob::Size::Small, "Decay" };
+    VirusKnob fReleaseSync { VirusKnob::Size::Small, "Release" };
+    VirusKnob aAttackSync  { VirusKnob::Size::Small, "Attack" }, aDecaySync { VirusKnob::Size::Small, "Decay" };
+    VirusKnob aReleaseSync { VirusKnob::Size::Small, "Release" };
 
     // Voice
     juce::ComboBox playModeBox;

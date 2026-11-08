@@ -11,6 +11,9 @@ static int writeSnapshot (const juce::File& file, int width, int preset)
     ReeseAudioProcessor processor;
     if (preset > 0)
         processor.setCurrentProgram (preset);
+    if (juce::SystemStats::getEnvironmentVariable ("REESE_SNAPSHOT_SYNC", {}).isNotEmpty())
+        for (auto* id : { "aSync", "fSync" })
+            processor.apvts.getParameter (id)->setValueNotifyingHost (1.0f);
 
     // play a held note for a moment so the scope has something to show
     processor.prepareToPlay (48000.0, 512);

@@ -260,7 +260,7 @@ void CustomLookAndFeel::drawButtonBackground (Graphics& g, Button& button, const
     g.drawRoundedRectangle (b, 3.0f, 1.0f);
 }
 
-Font CustomLookAndFeel::getTextButtonFont (TextButton&, int)  { return uiFont (11.5f, true); }
+Font CustomLookAndFeel::getTextButtonFont (TextButton&, int buttonHeight)  { return uiFont (jmin (11.5f, (float) buttonHeight * 0.7f), true); }
 
 void CustomLookAndFeel::drawButtonText (Graphics& g, TextButton& button, bool, bool)
 {

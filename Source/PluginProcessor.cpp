@@ -74,14 +74,20 @@ EngineSettings ReeseAudioProcessor::makeEngineSettings() const
     s.envSemis     = fltEnvToSemis (raw (ParamIDs::fltEnv));
     s.keyTrack     = raw (ParamIDs::keyTrack) * 0.01f;
 
-    s.fA = envTimeToMs (raw (ParamIDs::fAttack));
-    s.fD = envTimeToMs (raw (ParamIDs::fDecay));
+    // Attack / Decay / Release: free times, or note values at the host tempo when Sync is on
+    auto envTime = [this] (const char* freeId, const char* syncId, bool synced)
+    {
+        return synced ? syncDivisionToMs (roundToInt (raw (syncId)), bpm) : envTimeToMs (raw (freeId));
+    };
+    const bool fSync = raw (ParamIDs::fSync) > 0.5f, aSync = raw (ParamIDs::aSync) > 0.5f;
+    s.fA = envTime (ParamIDs::fAttack,  ParamIDs::fAttackSync,  fSync);
+    s.fD = envTime (ParamIDs::fDecay,   ParamIDs::fDecaySync,   fSync);
     s.fS = raw (ParamIDs::fSustain) * 0.01f;
-    s.fR = envTimeToMs (raw (ParamIDs::fRelease));
-    s.aA = envTimeToMs (raw (ParamIDs::aAttack));
-    s.aD = envTimeToMs (raw (ParamIDs::aDecay));
+    s.fR = envTime (ParamIDs::fRelease, ParamIDs::fReleaseSync, fSync);
+    s.aA = envTime (ParamIDs::aAttack,  ParamIDs::aAttackSync,  aSync);
+    s.aD = envTime (ParamIDs::aDecay,   ParamIDs::aDecaySync,   aSync);
     s.aS = raw (ParamIDs::aSustain) * 0.01f;
-    s.aR = envTimeToMs (raw (ParamIDs::aRelease));
+    s.aR = envTime (ParamIDs::aRelease, ParamIDs::aReleaseSync, aSync);
     return s;
 }
 
@@ -105,6 +111,14 @@ void ReeseAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& 
     buffer.clear();
     if (num == 0 || buffer.getNumChannels() < 2)
         return;
+
+    // host tempo for the synced envelopes (120 BPM when the host gives none)
+    if (auto* ph = getPlayHead())
+        if (auto position = ph->getPosition())
+            if (auto hostBpm = position->getBpm())
+                if (*hostBpm > 1.0)
+                    bpm = *hostBpm;
+    gui.bpm.store ((float) bpm, std::memory_order_relaxed);
 
     engine.setSettings (makeEngineSettings());
 

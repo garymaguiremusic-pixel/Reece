@@ -321,6 +321,32 @@ public:
             expectEquals (p->gui.activeVoices.load(), kMaxPoly);
         }
 
+        beginTest ("Synced envelopes follow the tempo (1/512 .. 1/1)");
+        {
+            expectWithinAbsoluteError (syncDivisionToMs (9, 120.0), 2000.0f, 0.01f);      // 1/1 at 120 = one bar
+            expectWithinAbsoluteError (syncDivisionToMs (0, 120.0), 2000.0f / 512.0f, 0.001f);
+            expectWithinAbsoluteError (syncDivisionToMs (5, 60.0), 250.0f, 0.01f);         // 1/16 at 60 BPM = a quarter beat
+
+            // amp attack synced to 1/4 at 120 BPM (no host tempo here): the level reaches its peak after ~500 ms
+            auto p = makeProcessor();
+            setParam (*p, ParamIDs::aSync, 1.0f);
+            setParam (*p, ParamIDs::aAttackSync, 7.0f);   // 1/4
+            setParam (*p, ParamIDs::aSustain, 100.0f);
+            setParam (*p, ParamIDs::satOn, 0.0f);
+            const auto audio = renderNote (*p, 40, 1.0);
+            auto rms = [&] (int from, int len)
+            {
+                double acc = 0.0;
+                for (int i = from; i < from + len; ++i)
+                    acc += (double) audio.getSample (0, i) * audio.getSample (0, i);
+                return std::sqrt (acc / len);
+            };
+            const double at250 = rms (12000 - 1200, 2400), at750 = rms (36000 - 1200, 2400);
+            logMessage ("attack 1/4: level at 250 ms " + String (at250, 3) + ", at 750 ms " + String (at750, 3));
+            expectLessThan (at250, at750 * 0.75);
+            expectGreaterThan (at250, at750 * 0.3);
+        }
+
         beginTest ("State round trip");
         {
             auto p = makeProcessor();

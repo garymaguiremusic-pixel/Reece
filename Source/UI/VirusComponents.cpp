@@ -31,7 +31,8 @@ String VirusKnob::getValueText() const
 
 String VirusKnob::getTooltip()
 {
-    String text = (tooltipName.isNotEmpty() ? tooltipName : label).toUpperCase() + "  " + getValueText();
+    String text = (tooltipName.isNotEmpty() ? tooltipName : label).toUpperCase() + "  "
+                + (tooltipValue ? tooltipValue ((float) getValue()) : getValueText());
     if (! isEnabled() && inactiveHint.isNotEmpty())
         text << "\n" << inactiveHint;
     return text;
@@ -357,7 +358,7 @@ void HelpOverlay::paint (Graphics& g)
 {
     g.fillAll (Colours::black.withAlpha (0.72f));
 
-    auto box = getLocalBounds().toFloat().reduced (60.0f, 30.0f);
+    auto box = getLocalBounds().toFloat().reduced (60.0f, 20.0f);
     CustomLookAndFeel::drawPanel (g, box, "Reese - Quick Help");
 
     const char* lines[] =
@@ -374,6 +375,7 @@ void HelpOverlay::paint (Graphics& g)
         "SPREAD:  stereo width. Left = mono, centre = 100 %, right = 200 %",
         "SATURATION:  the KickDrum saturation (Soft, Tape, Tube, Hard Clip, Foldback, Fuzz), 4x oversampled",
         "MODE:  Mono (retrigger), Legato (glide without retrigger) or Poly (8 notes).  GLIDE:  portamento time",
+        "SYNC (envelopes):  Attack / Decay / Release lock to the tempo: 1/512, 1/256 ... 1/2, 1/1 (one step per value)",
         "Knobs move in steps of 1; hold Shift for 0.1 steps. Scroll wheel too. Double-click = default.",
         "Drag the bottom-right corner to resize the window.",
         "",
@@ -385,6 +387,6 @@ void HelpOverlay::paint (Graphics& g)
     for (auto* line : lines)
     {
         g.setColour (String (line).startsWith ("Click") ? VirusColours::blue : Colour (0xffdfe3e6));
-        g.drawFittedText (line, text.removeFromTop (22.0f).toNearestInt(), Justification::centredLeft, 1, 0.8f);
+        g.drawFittedText (line, text.removeFromTop (21.0f).toNearestInt(), Justification::centredLeft, 1, 0.8f);
     }
 }

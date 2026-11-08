@@ -49,6 +49,7 @@ public:
         std::atomic<int> activeVoices { 0 };
         std::atomic<float> peak { 0.0f };
         std::atomic<int> editorWidth { 0 };    // remembered editor size (0 = default)
+        std::atomic<float> bpm { (float) rs::kDefaultBpm };
     };
     GuiState gui;
 
@@ -64,6 +65,7 @@ private:
     rs::LR4Crossover monoXoverL, monoXoverR;
     juce::SmoothedValue<float> spreadSmooth, volumeSmooth, monoHzSmooth;
     double currentSampleRate = 44100.0;
+    double bpm = rs::kDefaultBpm;
 
     std::atomic<int> currentProgram { 0 };
 

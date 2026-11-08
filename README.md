@@ -60,6 +60,13 @@ It appears as an instrument under **VirusDelay Project**.
   reported to the host.
 * **Spread**: fully left is mono, centre is 100 %, fully right is 200 % (mid/side width).
 * **Volume**, and an **Amp Envelope** (Attack, Decay, Sustain, Release).
+
+## Envelope sync
+
+Both envelopes (Filter and Amp) have a **Sync** button. With Sync on, Attack, Decay and Release lock to note
+values at the host tempo (120 BPM if the host gives none): **1/512, 1/256, 1/128, 1/64, 1/32, 1/16, 1/8, 1/4,
+1/2, 1/1** (1/1 = one bar of 4/4). Each knob step moves one note value, and the tooltip shows the time in ms at
+the current tempo. Sustain stays a level. Switching Sync off goes back to the free times, which are kept.
 * Signal flow: voices -> saturation -> stereo spread -> mono bass -> volume.
 
 ## Controls

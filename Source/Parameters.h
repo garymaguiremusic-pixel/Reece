@@ -53,6 +53,16 @@ namespace rs
         inline constexpr const char* fSustain  = "fSustain";
         inline constexpr const char* fRelease  = "fRelease";
 
+        // Envelope tempo sync (Attack / Decay / Release as note values)
+        inline constexpr const char* fSync        = "fSync";
+        inline constexpr const char* fAttackSync  = "fAttackSync";
+        inline constexpr const char* fDecaySync   = "fDecaySync";
+        inline constexpr const char* fReleaseSync = "fReleaseSync";
+        inline constexpr const char* aSync        = "aSync";
+        inline constexpr const char* aAttackSync  = "aAttackSync";
+        inline constexpr const char* aDecaySync   = "aDecaySync";
+        inline constexpr const char* aReleaseSync = "aReleaseSync";
+
         // Amp
         inline constexpr const char* aAttack  = "aAttack";
         inline constexpr const char* aDecay   = "aDecay";
@@ -85,6 +95,21 @@ namespace rs
     inline juce::StringArray getFilterTypeNames(){ return { "Low Pass", "Band Pass", "High Pass" }; }
     inline juce::StringArray getSlopeNames()     { return { "12 dB/oct", "24 dB/oct", "36 dB/oct" }; }
     inline juce::StringArray getSatTypeNames()   { return { "Soft", "Tape", "Tube", "Hard Clip", "Foldback", "Fuzz" }; }
+
+    /** Envelope sync divisions, shortest first: 1/512 .. 1/1 (1/1 = one bar of 4/4). */
+    inline juce::StringArray getSyncDivisionNames()
+    {
+        return { "1/512", "1/256", "1/128", "1/64", "1/32", "1/16", "1/8", "1/4", "1/2", "1/1" };
+    }
+    static constexpr int kNumSyncDivisions = 10;
+    static constexpr double kDefaultBpm = 120.0;
+
+    inline float syncDivisionToMs (int index, double bpm)
+    {
+        const int denominator = 512 >> juce::jlimit (0, kNumSyncDivisions - 1, index);
+        const double beats = 4.0 / (double) denominator;
+        return (float) (beats * 60000.0 / juce::jmax (20.0, bpm));
+    }
 
     //==============================================================================
     // Knob -> unit mappings
@@ -212,6 +237,16 @@ namespace rs
         addFloat  (ParamIDs::fDecay, "Filter Decay", { 0.0f, 100.0f }, 55.0f, formatEnvTime);
         addFloat  (ParamIDs::fSustain, "Filter Sustain", { 0.0f, 100.0f }, 30.0f, formatPercent, "%");
         addFloat  (ParamIDs::fRelease, "Filter Release", { 0.0f, 100.0f }, 45.0f, formatEnvTime);
+
+        // Envelope sync -------------------------------------------------------------------------
+        addBool   (ParamIDs::fSync, "Filter Env Sync", false);
+        addChoice (ParamIDs::fAttackSync,  "Filter Attack Sync",  getSyncDivisionNames(), 0);
+        addChoice (ParamIDs::fDecaySync,   "Filter Decay Sync",   getSyncDivisionNames(), 6);
+        addChoice (ParamIDs::fReleaseSync, "Filter Release Sync", getSyncDivisionNames(), 5);
+        addBool   (ParamIDs::aSync, "Amp Env Sync", false);
+        addChoice (ParamIDs::aAttackSync,  "Amp Attack Sync",  getSyncDivisionNames(), 0);
+        addChoice (ParamIDs::aDecaySync,   "Amp Decay Sync",   getSyncDivisionNames(), 6);
+        addChoice (ParamIDs::aReleaseSync, "Amp Release Sync", getSyncDivisionNames(), 4);
 
         // Amp -------------------------------------------------------------------------------
         addFloat (ParamIDs::aAttack, "Amp Attack", { 0.0f, 100.0f }, 10.0f, formatEnvTime);

@@ -63,6 +63,16 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     addKnob (aSustain, ParamIDs::aSustain, formatPercent, "Amp Sustain");
     addKnob (aRelease, ParamIDs::aRelease, formatEnvTime, "Amp Release");
 
+    // Envelope sync ------------------------------------------------------------------------------
+    addToggle (fSyncButton, ParamIDs::fSync, "Sync the filter envelope's Attack, Decay and Release to the tempo (1/512 to 1/1)");
+    addToggle (aSyncButton, ParamIDs::aSync, "Sync the amp envelope's Attack, Decay and Release to the tempo (1/512 to 1/1)");
+    addSyncKnob (fAttackSync,  ParamIDs::fAttackSync,  "Filter Attack");
+    addSyncKnob (fDecaySync,   ParamIDs::fDecaySync,   "Filter Decay");
+    addSyncKnob (fReleaseSync, ParamIDs::fReleaseSync, "Filter Release");
+    addSyncKnob (aAttackSync,  ParamIDs::aAttackSync,  "Amp Attack");
+    addSyncKnob (aDecaySync,   ParamIDs::aDecaySync,   "Amp Decay");
+    addSyncKnob (aReleaseSync, ParamIDs::aReleaseSync, "Amp Release");
+
     // Presets -----------------------------------------------------------------------------------
     const auto& presets = getFactoryPresets();
     for (size_t i = 0; i < presets.size(); ++i)
@@ -99,6 +109,19 @@ void ReesePanel::addKnob (VirusKnob& knob, const String& id, std::function<Strin
     knob.tooltipName = tooltipName;
     knobAttachments.push_back (std::make_unique<KnobAttachment> (*processor.apvts.getParameter (id), knob));
     addAndMakeVisible (knob);
+}
+
+void ReesePanel::addSyncKnob (VirusKnob& knob, const String& id, const String& tooltipName)
+{
+    // one knob step = one note value; the tooltip adds the time at the current tempo
+    addKnob (knob, id, [] (float v) { return getSyncDivisionNames()[jlimit (0, kNumSyncDivisions - 1, roundToInt (v))]; },
+             tooltipName + " (synced)");
+    knob.tooltipValue = [this] (float v)
+    {
+        const int index = jlimit (0, kNumSyncDivisions - 1, roundToInt (v));
+        return getSyncDivisionNames()[index] + "   (" + formatMs (syncDivisionToMs (index, processor.gui.bpm.load())) + ")";
+    };
+    knob.setVisible (false);
 }
 
 void ReesePanel::addToggle (TextButton& button, const String& id, const String& tooltip)
@@ -198,9 +221,15 @@ void ReesePanel::resized()
     cutoffLcd.setBounds (698, 180, 164, 22);
     {
         VirusKnob* env[] = { &fAttack, &fDecay, &fSustain, &fRelease };
+        VirusKnob* sync[] = { &fAttackSync, &fDecaySync, nullptr, &fReleaseSync };
         for (int i = 0; i < 4; ++i)
+        {
             env[i]->setBounds (592 + i * 68, 216, 64, 70);
+            if (sync[i] != nullptr)
+                sync[i]->setBounds (env[i]->getBounds());
+        }
     }
+    fSyncButton.setBounds (818, 201, 42, 15);
 
     // second row
     voicePanel  = { 8.0f,   296.0f, 128.0f, 108.0f };
@@ -228,9 +257,15 @@ void ReesePanel::resized()
     }
     {
         VirusKnob* k[] = { &aAttack, &aDecay, &aSustain, &aRelease };
+        VirusKnob* sync[] = { &aAttackSync, &aDecaySync, nullptr, &aReleaseSync };
         for (int i = 0; i < 4; ++i)
+        {
             k[i]->setBounds (688 + i * 45, 320, 45, 72);
+            if (sync[i] != nullptr)
+                sync[i]->setBounds (k[i]->getBounds());
+        }
     }
+    aSyncButton.setBounds (826, 298, 42, 14);
 
     scope.setBounds (8, 410, 864, 56);
     helpButton.setBounds (kWidth - 26, kBottomBarY + 6, 20, 20);
@@ -265,6 +300,17 @@ void ReesePanel::updateActiveStates()
         setActive (c.octDown, ! noise);
         setActive (c.octUp, ! noise);
         c.octLcd.setDimmed (noise);
+    }
+
+    // Sync swaps the free-time knobs for note-value knobs in the same places
+    const bool fSync = raw (ParamIDs::fSync) > 0.5f, aSync = raw (ParamIDs::aSync) > 0.5f;
+    for (auto [freeKnob, syncKnob, synced] : { std::tuple<VirusKnob*, VirusKnob*, bool> { &fAttack, &fAttackSync, fSync },
+                                               { &fDecay, &fDecaySync, fSync }, { &fRelease, &fReleaseSync, fSync },
+                                               { &aAttack, &aAttackSync, aSync }, { &aDecay, &aDecaySync, aSync },
+                                               { &aRelease, &aReleaseSync, aSync } })
+    {
+        freeKnob->setVisible (! synced);
+        syncKnob->setVisible (synced);
     }
 
     setActive (glideKnob, (int) raw (ParamIDs::playMode) != ModePoly);
@@ -393,7 +439,7 @@ void ReesePanel::paint (Graphics& g)
         const float tw = GlyphArrangement::getStringWidth (g.getCurrentFont(), "FILTER ENVELOPE") + 12.0f;
         const float cx = filterPanel.getCentreX();
         divider (y, 592.0f, cx - tw * 0.5f);
-        divider (y, cx + tw * 0.5f, 860.0f);
+        divider (y, cx + tw * 0.5f, 812.0f);
         g.setColour (VirusColours::labelText);
         g.drawText ("FILTER ENVELOPE", Rectangle<float> (cx - tw * 0.5f, y - 6.0f, tw, 12.0f), Justification::centred);
     }
