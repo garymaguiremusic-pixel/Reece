@@ -24,6 +24,7 @@ public:
     Size getKnobSize() const noexcept           { return knobSize; }
     void setDefaultValue (double v) noexcept    { defaultValue = v; }
     void setContinuous (bool c) noexcept        { continuous = c; }
+    bool isContinuous() const noexcept          { return continuous; }
     void setBipolar (bool b)                    { getProperties().set ("bipolar", b); }
 
     std::function<void()> onGestureBegin, onGestureEnd;

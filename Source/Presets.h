@@ -40,7 +40,7 @@ namespace rs
             { "Neuro Growl",
               { { o1 (voices), 4 }, { o2 (voices), 4 }, { o1 (detune), 30.0f }, { o2 (detune), 18.0f },
                 { o2 (wave), WaveSawSquare }, { o2 (semi), 0.0f }, { o2 (fine), 15.0f }, { o1 (fine), -15.0f },
-                { cutoff, 52.0f }, { resonance, 45.0f }, { fltEnv, 35.0f }, { fDecay, 48.0f }, { fSustain, 20.0f },
+                { cutoff, 52.0f }, { resonance, 45.0f }, { fltEnv, 34.0f }, { fDecay, 48.0f }, { fSustain, 20.0f },
                 { satOn, 1 }, { satType, 1 }, { satDrive, 14.0f }, { monoBass, 150.0f }, { volume, -8.0f } } },
 
             { "Dark Sub Reese",
@@ -60,12 +60,12 @@ namespace rs
             { "FM Reese Growl",
               { { o1 (fmOn), 1 }, { o1 (fmAmount), 32.0f }, { o1 (voices), 3 }, { o1 (detune), 14.0f },
                 { o2 (wave), WaveSine }, { o2 (octave), 1 }, { o2 (fine), 7.0f }, { o2 (level), 18.0f }, { o2 (voices), 1 },
-                { cutoff, 64.0f }, { resonance, 20.0f }, { fltEnv, 25.0f }, { fDecay, 50.0f }, { fSustain, 30.0f },
+                { cutoff, 64.0f }, { resonance, 20.0f }, { fltEnv, 24.0f }, { fDecay, 50.0f }, { fSustain, 30.0f },
                 { monoBass, 130.0f }, { volume, -6.0f } } },
 
             { "Poly Reese Stab",
               { { playMode, ModePoly }, { o1 (voices), 3 }, { o2 (voices), 3 }, { o1 (octave), 0 }, { o2 (octave), 0 },
-                { aDecay, 45.0f }, { aSustain, 40.0f }, { aRelease, 40.0f }, { fltEnv, 45.0f }, { fDecay, 45.0f },
+                { aDecay, 45.0f }, { aSustain, 40.0f }, { aRelease, 40.0f }, { fltEnv, 43.0f }, { fDecay, 45.0f },
                 { fSustain, 10.0f }, { cutoff, 48.0f }, { resonance, 30.0f }, { monoBass, 100.0f }, { volume, -8.0f } } },
         };
         return presets;

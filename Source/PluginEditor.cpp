@@ -28,7 +28,7 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     addCombo (slopeBox, ParamIDs::fltSlope, getSlopeNames(), "Filter slope");
     addKnob (cutoffKnob, ParamIDs::cutoff, formatCutoff, "Filter Cutoff");
     addKnob (resonanceKnob, ParamIDs::resonance, formatPercent, "Filter Resonance");
-    addKnob (envAmtKnob, ParamIDs::fltEnv, [] (float v) { return formatSemis (fltEnvToSemis (v)); }, "Filter Envelope Amount");
+    addKnob (envAmtKnob, ParamIDs::fltEnv, formatSemis, "Filter Envelope Amount");
     addKnob (keyTrackKnob, ParamIDs::keyTrack, formatPercent, "Filter Key Tracking");
     addKnob (fAttack, ParamIDs::fAttack, formatEnvTime, "Filter Attack");
     addKnob (fDecay, ParamIDs::fDecay, formatEnvTime, "Filter Decay");
@@ -70,6 +70,16 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     addSyncKnob (aAttackSync,  ParamIDs::aAttackSync,  "Amp Attack");
     addSyncKnob (aDecaySync,   ParamIDs::aDecaySync,   "Amp Decay");
     addSyncKnob (aReleaseSync, ParamIDs::aReleaseSync, "Amp Release");
+
+    // Envelope times and Glide: the knob shows its own 0..100 number (1.0 steps, Shift = 0.1),
+    // and the tooltip adds the real time.
+    for (VirusKnob* k : { &fAttack, &fDecay, &fRelease, &aAttack, &aDecay, &aRelease })
+    {
+        k->describeValue = [] (float v) { return trimmed (v); };
+        k->tooltipValue = [] (float v) { return trimmed (v) + "   (" + formatEnvTime (v) + ")"; };
+    }
+    glideKnob.describeValue = [] (float v) { return v <= 0.0f ? String ("Off") : trimmed (v); };
+    glideKnob.tooltipValue = [] (float v) { return v <= 0.0f ? String ("Off") : trimmed (v) + "   (" + formatGlide (v) + ")"; };
 
     // Presets -----------------------------------------------------------------------------------
     const auto& presets = getFactoryPresets();

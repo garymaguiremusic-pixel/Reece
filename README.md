@@ -62,7 +62,8 @@ It appears as an instrument under **VirusDelay Project**.
   like an OTA filter, so high resonance stays round instead of whistling.
 * **Cutoff** (20 Hz-20 kHz) and **Reso** move smoothly with no steps. The cutoff is smoothed and
   recalculated every sample.
-* **Env Amt** (+-96 semitones), **Key Track**, and a filter envelope (Attack, Decay, Sustain, Release).
+* **Env Amt** (-96 to +96 semitones, 1 semitone per step), **Key Track**, and a filter envelope
+  (Attack, Decay, Sustain, Release).
 
 ## Saturation, stereo and output
 
@@ -83,7 +84,9 @@ the current tempo. Sustain stays a level. Switching Sync off goes back to the fr
 ## Controls
 
 * Every knob moves in steps of **1.0** when you drag or use the mouse wheel. Hold **Shift** for **0.1** steps.
-  Cutoff and Reso are the exception and move continuously. **Double-click a knob to set it to 0** (knobs
+  Cutoff and Reso are the exception and move continuously. Envelope times and Glide show their knob
+  number (0-100, 1.0 per step); the tooltip shows the time in ms. A unit test turns every stepped knob in
+  the real editor through its whole range and fails the build if any shown value moves by anything but 1.0. **Double-click a knob to set it to 0** (knobs
   that can't be 0 go to their nearest value: Voices -> 1, PW -> 1 %). Hover
   to see its value in real units. The cutoff frequency is shown in the Filter header.
 * The window is resizable from the bottom-right corner (70-200 %) and remembers its size.

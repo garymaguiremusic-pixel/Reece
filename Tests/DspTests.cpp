@@ -592,3 +592,65 @@ public:
 };
 
 static KnobTests knobTests;
+
+//==============================================================================
+class KnobStepTests : public UnitTest
+{
+public:
+    KnobStepTests() : UnitTest ("Knob steps", "UI") {}
+
+    static void collectKnobs (Component& c, Array<VirusKnob*>& out)
+    {
+        for (auto* child : c.getChildren())
+        {
+            if (auto* k = dynamic_cast<VirusKnob*> (child))
+                out.add (k);
+            collectKnobs (*child, out);
+        }
+    }
+
+    /** The number in a knob's value text, e.g. "+19 st" -> 19, "L 50" -> 50. NaN if there is none. */
+    static double numberIn (const String& text)
+    {
+        for (int i = 0; i < text.length(); ++i)
+            if (CharacterFunctions::isDigit (text[i]))
+                return text.substring (i).getDoubleValue();
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    void runTest() override
+    {
+        beginTest ("Every stepped knob shows its value in 1.0 steps");
+        ReeseAudioProcessor processor;
+        std::unique_ptr<AudioProcessorEditor> editor (processor.createEditor());
+        Array<VirusKnob*> knobs;
+        collectKnobs (*editor, knobs);
+        expectGreaterThan (knobs.size(), 40);
+
+        int checked = 0;
+        for (auto* k : knobs)
+        {
+            if (k->isContinuous())
+                continue;       // Cutoff / Reso: smooth, no steps (by request)
+            const String knobName = k->getTooltip().upToFirstOccurrenceOf ("  ", false, false);
+            for (double v = std::ceil (k->getMinimum()); v + 1.0 <= k->getMaximum(); v += 1.0)
+            {
+                k->setValue (v, dontSendNotification);
+                const auto a = k->getValueText();
+                k->setValue (v + 1.0, dontSendNotification);
+                const auto b = k->getValueText();
+                if (a.contains ("/") || b.contains ("/"))
+                    continue;   // note values (1/16, 1/8 ...): one per step
+                const double na = numberIn (a), nb = numberIn (b);
+                if (std::isnan (na) || std::isnan (nb))
+                    continue;   // "Off", "C", "Mono", "-inf"
+                ++checked;
+                expectWithinAbsoluteError (std::abs (std::abs (nb - na) - 1.0), 0.0, 1.0e-6,
+                                           knobName + ": '" + a + "' -> '" + b + "'");
+            }
+        }
+        logMessage (String (checked) + " knob steps checked");
+    }
+};
+
+static KnobStepTests knobStepTests;

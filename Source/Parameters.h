@@ -122,7 +122,7 @@ namespace rs
     inline float cutoffToHz (float v)        { return 20.0f * std::pow (1000.0f, juce::jlimit (0.0f, 100.0f, v) * 0.01f); }   // 20 Hz .. 20 kHz
     inline float envTimeToMs (float v)       { return 0.5f * std::pow (20000.0f, juce::jlimit (0.0f, 100.0f, v) * 0.01f); }   // 0.5 ms .. 10 s
     inline float glideToMs (float v)         { return v <= 0.0f ? 0.0f : std::pow (2000.0f, juce::jlimit (0.0f, 100.0f, v) * 0.01f); } // off, 1 ms .. 2 s
-    inline float fltEnvToSemis (float v)     { return v * 0.96f; }   // +-100 % = +-96 semitones (8 octaves)
+    inline float fltEnvToSemis (float v)     { return v; }   // the knob is in semitones: +-96 (8 octaves), 1 per step
 
     //==============================================================================
     // Value text
@@ -242,7 +242,7 @@ namespace rs
         addChoice (ParamIDs::fltSlope, "Filter Slope", getSlopeNames(), 1);
         addFloat  (ParamIDs::cutoff, "Cutoff", { 0.0f, 100.0f }, 62.0f, formatCutoff);
         addFloat  (ParamIDs::resonance, "Resonance", { 0.0f, 100.0f }, 18.0f, formatPercent, "%");
-        addFloat  (ParamIDs::fltEnv, "Filter Env Amount", { -100.0f, 100.0f }, 20.0f, [] (float v) { return formatSemis (fltEnvToSemis (v)); });
+        addFloat  (ParamIDs::fltEnv, "Filter Env Amount", { -96.0f, 96.0f }, 19.0f, formatSemis, "st");
         addFloat  (ParamIDs::keyTrack, "Key Track", { 0.0f, 100.0f }, 50.0f, formatPercent, "%");
         addFloat  (ParamIDs::fAttack, "Filter Attack", { 0.0f, 100.0f }, 0.0f, formatEnvTime);
         addFloat  (ParamIDs::fDecay, "Filter Decay", { 0.0f, 100.0f }, 55.0f, formatEnvTime);
