@@ -86,6 +86,22 @@ private:
 };
 
 //==============================================================================
+/** LFO waveform on a blue LCD, with a dot at the current phase (dimmed when the LFO is off). */
+class LfoDisplay : public juce::Component
+{
+public:
+    void setState (int shape, float phase, bool on, const juce::String& rateText);
+    void paint (juce::Graphics&) override;
+
+private:
+    float valueAt (float phase) const;
+    int shape = 0;
+    float phase = 0.0f;
+    bool on = false;
+    juce::String rateText;
+};
+
+//==============================================================================
 /** Output oscilloscope (L and R) in the bottom strip, with a text summary at the right. */
 class ScopeDisplay : public juce::Component
 {

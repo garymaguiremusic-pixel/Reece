@@ -73,13 +73,29 @@ It appears as an instrument under **VirusDelay Project**.
 * **Spread**: fully left is mono, centre is 100 %, fully right is 200 % (mid/side width).
 * **Volume**, and an **Amp Envelope** (Attack, Decay, Sustain, Release).
 
+## LFO (filter cutoff)
+
+* **LFO** button turns it on. **Shape**: Sine, Triangle, Saw Up, Saw Down, Square, Sample & Hold.
+* **Rate**: free (0-100, about 0.05-20 Hz, shown in the tooltip), or with **Sync** on, note values from 8/1 to 1/64
+  including triplets. While the host plays, a synced LFO is locked to the bar grid.
+* **Depth**: 0-96 semitones of cutoff movement, up and down, 1 semitone per step.
+* **Retrig**: restarts the LFO on every new note (legato notes don't restart it).
+* The display shows the shape and where the LFO is now.
+
+## Randomise
+
+* **Randomise** sets new values for the sections switched on by the small **LFO** and **Saturation** buttons
+  beside it. LFO: shape, sync, rate and depth. Saturation: type, drive, tone and mix, with the level
+  lowered as the drive goes up. Their **On** buttons are left as they are, so turn the LFO / Saturation on to
+  hear the result.
+
 ## Envelope sync
 
 Both envelopes (Filter and Amp) have a **Sync** button. With Sync on, Attack, Decay and Release lock to note
 values at the host tempo (120 BPM if the host gives none): **1/512, 1/256, 1/128, 1/64, 1/32, 1/16, 1/8, 1/4,
 1/2, 1/1** (1/1 = one bar of 4/4). Each knob step moves one note value, and the tooltip shows the time in ms at
 the current tempo. Sustain stays a level. Switching Sync off goes back to the free times, which are kept.
-* Signal flow: voices -> saturation -> stereo spread -> mono bass -> volume.
+* Signal flow: voices (oscillators -> filter, with the LFO on the cutoff) -> saturation -> stereo spread -> mono bass -> volume.
 
 ## Controls
 

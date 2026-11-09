@@ -528,6 +528,69 @@ public:
                 }
         }
 
+        beginTest ("LFO sweeps the filter cutoff");
+        {
+            // brightness (high-passed level) in 25 ms windows: varies with the LFO, steady without it
+            auto spreadOfBrightness = [] (bool lfoOn)
+            {
+                auto p = makeProcessor();
+                setParam (*p, ParamIDs::lfoOn, lfoOn ? 1.0f : 0.0f);
+                setParam (*p, ParamIDs::lfoSync, 0.0f);
+                setParam (*p, ParamIDs::lfoRate, 60.0f);           // ~1.8 Hz
+                setParam (*p, ParamIDs::lfoDepth, 36.0f);
+                setParam (*p, ParamIDs::cutoff, 55.0f);
+                setParam (*p, ParamIDs::fltEnv, 0.0f);
+                setParam (*p, oscParam (0, ParamIDs::voices), 1);
+                setParam (*p, oscParam (1, ParamIDs::level), 0.0f);
+                p->reset();
+                const auto audio = renderNote (*p, 40, 2.0);
+                LR4Crossover x;
+                const float g = svfG (1500.0f, (float) kRate);
+                std::vector<float> rms;
+                double acc = 0.0;
+                for (int i = 0; i < audio.getNumSamples(); ++i)
+                {
+                    const float h = x.highPass (audio.getSample (0, i), g);
+                    acc += (double) h * h;
+                    if ((i + 1) % 1200 == 0) { rms.push_back ((float) std::sqrt (acc / 1200)); acc = 0.0; }
+                }
+                rms.erase (rms.begin(), rms.begin() + 4);
+                const auto [mn, mx] = std::minmax_element (rms.begin(), rms.end());
+                return *mx / jmax (1.0e-6f, *mn);
+            };
+            const float off = spreadOfBrightness (false), on = spreadOfBrightness (true);
+            logMessage ("brightness max/min: LFO off " + String (off, 2) + ", LFO on " + String (on, 2));
+            expectLessThan (off, 1.3f);
+            expectGreaterThan (on, 4.0f);
+        }
+
+        beginTest ("Randomise changes only the sections switched on");
+        {
+            auto p = makeProcessor();
+            auto value = [&] (const char* id) { return p->apvts.getRawParameterValue (id)->load(); };
+            for (int round = 0; round < 20; ++round)
+            {
+                const bool doLfo = round % 2 == 0, doSat = round % 3 != 0;
+                setParam (*p, ParamIDs::randLfo, doLfo ? 1.0f : 0.0f);
+                setParam (*p, ParamIDs::randSat, doSat ? 1.0f : 0.0f);
+                const float lfoBefore = value (ParamIDs::lfoDepth), satBefore = value (ParamIDs::satDrive);
+                const float lfoOnBefore = value (ParamIDs::lfoOn), satOnBefore = value (ParamIDs::satOn);
+                p->randomise();
+
+                if (! doLfo) expectEquals (value (ParamIDs::lfoDepth), lfoBefore);
+                if (! doSat) expectEquals (value (ParamIDs::satDrive), satBefore);
+                expectEquals (value (ParamIDs::lfoOn), lfoOnBefore);     // On buttons are left alone
+                expectEquals (value (ParamIDs::satOn), satOnBefore);
+                if (doLfo)
+                {
+                    expect (value (ParamIDs::lfoDepth) >= 6.0f && value (ParamIDs::lfoDepth) <= 48.0f);
+                    expectEquals (value (ParamIDs::lfoDepth), std::round (value (ParamIDs::lfoDepth)));
+                }
+                if (doSat)
+                    expect (value (ParamIDs::satDrive) >= 3.0f && value (ParamIDs::satDrive) <= 24.0f);
+            }
+        }
+
         beginTest ("State round trip");
         {
             auto p = makeProcessor();

@@ -430,6 +430,8 @@ namespace rs
 
             voice->setAge (++ageCounter);
             voice->start (note, vel, false, settings);
+            if (settings.lfoRetrig)
+                restartLfo();
             return;
         }
 
@@ -455,7 +457,11 @@ namespace rs
         if (settings.playMode == ModeLegato && v.isActive() && (othersHeld || justReleased))
             v.legatoTo (note, settings);
         else
+        {
             v.start (note, vel, v.isActive(), settings);
+            if (settings.lfoRetrig)
+                restartLfo();
+        }
     }
 
     void SynthEngine::noteOff (int note)
@@ -522,15 +528,76 @@ namespace rs
             renderChunk (left + pos, right + pos, std::min (ChunkShared::kMax, numSamples - pos));
     }
 
+    void SynthEngine::setTransport (double bpm, double ppqAtBlockStart, bool playing) noexcept
+    {
+        transportBpm = std::max (20.0, bpm);
+        transportPpq = ppqAtBlockStart;
+        if (playing && ! transportPlaying)
+            lfoFollowsHost = true;          // transport (re)started: lock to the bar grid again
+        transportPlaying = playing;
+    }
+
+    void SynthEngine::restartLfo() noexcept
+    {
+        lfoPhase = 0.0;
+        lfoFollowsHost = false;     // after a retrigger the LFO runs from the note, not the bar grid
+        lfoRandom = lfoRandom * 1664525u + 1013904223u;
+        lfoHold = (float) (int32_t) lfoRandom * (1.0f / 2147483648.0f);
+    }
+
+    float SynthEngine::lfoValueAt (double phase) noexcept
+    {
+        const float p = (float) phase;
+        switch (settings.lfoShape)
+        {
+            case LfoTriangle:   return 1.0f - 4.0f * std::abs (p - 0.5f);   // -1 at 0, +1 at 0.5
+            case LfoSawUp:      return 2.0f * p - 1.0f;
+            case LfoSawDown:    return 1.0f - 2.0f * p;
+            case LfoSquare:     return p < 0.5f ? 1.0f : -1.0f;
+            case LfoSampleHold: return lfoHold;
+            case LfoSine:
+            default:            return std::sin (6.283185307f * p);
+        }
+    }
+
     void SynthEngine::renderChunk (float* left, float* right, int numSamples) noexcept
     {
         // smoothed controls, per sample: the cutoff never steps
         const float sr = (float) sampleRate;
+        const double beatsPerSample = transportBpm / 60.0 / sampleRate;
+        const double cycleBeats = std::max (1.0e-3, settings.lfoBeats);
+        const double freeInc = settings.lfoSync ? beatsPerSample / cycleBeats : (double) settings.lfoHz / sampleRate;
+        // synced while the host plays (and no note retrigger has taken over): lock to the bar grid
+        const bool fromHost = settings.lfoSync && transportPlaying && lfoFollowsHost;
+        const float lfoSmoothCoef = 1.0f - std::exp (-1.0f / (0.0015f * sr));   // 1.5 ms: square / S&H edges don't click
+
         for (int i = 0; i < numSamples; ++i)
         {
             cutoffSm += (settings.cutoff - cutoffSm) * smoothCoef;
             lockSm += (settings.phaseLockHz - lockSm) * smoothCoef;
-            shared.cutoffSemis[i] = cutoffSm * kCutoffSemisPerStep;
+
+            // LFO
+            double next;
+            if (fromHost)
+            {
+                const double cycles = (transportPpq + (double) i * beatsPerSample) / cycleBeats;
+                next = cycles - std::floor (cycles);
+            }
+            else
+            {
+                next = lfoPhase + freeInc;
+                next -= std::floor (next);
+            }
+            if (next < lfoPhase && settings.lfoShape == LfoSampleHold)
+            {
+                lfoRandom = lfoRandom * 1664525u + 1013904223u;
+                lfoHold = (float) (int32_t) lfoRandom * (1.0f / 2147483648.0f);
+            }
+            lfoPhase = next;
+            lfoOut = lfoValueAt (lfoPhase);
+            lfoSmoothed += ((settings.lfoOn ? lfoOut : 0.0f) - lfoSmoothed) * lfoSmoothCoef;
+
+            shared.cutoffSemis[i] = cutoffSm * kCutoffSemisPerStep + lfoSmoothed * settings.lfoDepthSemis;
             shared.lockG[i] = lockSm >= 1.0f ? svfG (lockSm, sr) : 0.0f;
         }
         resSm += (settings.resonance - resSm) * std::min (1.0f, smoothCoef * (float) numSamples);
@@ -538,5 +605,7 @@ namespace rs
 
         for (auto& v : voices)
             v.render (left, right, numSamples, settings, shared);
+
+        transportPpq += (double) numSamples * beatsPerSample;   // MIDI events split blocks into several renders
     }
 }

@@ -11,7 +11,7 @@ class ReesePanel : public juce::Component,
                    private juce::Timer
 {
 public:
-    static constexpr int kBaseWidth = 880, kBaseHeight = 504;
+    static constexpr int kBaseWidth = 880, kBaseHeight = 618;
 
     explicit ReesePanel (ReeseAudioProcessor&);
     ~ReesePanel() override;
@@ -98,6 +98,18 @@ private:
     VirusKnob aAttack  { VirusKnob::Size::Small, "Attack" }, aDecay   { VirusKnob::Size::Small, "Decay" };
     VirusKnob aSustain { VirusKnob::Size::Small, "Sustain" }, aRelease { VirusKnob::Size::Small, "Release" };
 
+    // LFO -> filter cutoff
+    juce::TextButton lfoOnButton { "LFO" }, lfoSyncButton { "Sync" }, lfoRetrigButton { "Retrig" };
+    juce::ComboBox lfoShapeBox;
+    VirusKnob lfoRateKnob  { VirusKnob::Size::Small, "Rate" };
+    VirusKnob lfoDivKnob   { VirusKnob::Size::Small, "Rate" };    // shown instead of Rate while synced
+    VirusKnob lfoDepthKnob { VirusKnob::Size::Small, "Depth" };
+    LfoDisplay lfoDisplay;
+
+    // Randomise
+    juce::TextButton randomiseButton { "Randomise" };
+    juce::TextButton randLfoButton { "LFO" }, randSatButton { "Saturation" };
+
     juce::ComboBox presetBox;
     ScopeDisplay scope;
     HelpButton helpButton;
@@ -111,7 +123,7 @@ private:
     std::vector<std::unique_ptr<KnobAttachment>> knobAttachments;
     std::vector<std::unique_ptr<ButtonAttachment>> buttonAttachments;
 
-    juce::Rectangle<float> filterPanel, voicePanel, lowPanel, stereoPanel, satPanel, ampPanel;
+    juce::Rectangle<float> filterPanel, voicePanel, lowPanel, stereoPanel, satPanel, ampPanel, lfoPanel, randPanel;
     int lastShownProgram = -1;
     juce::String cutoffText;                  // shown in the Filter header
 

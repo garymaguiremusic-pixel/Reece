@@ -7,7 +7,7 @@ using namespace rs;
 namespace
 {
     constexpr int kWidth = ReesePanel::kBaseWidth, kHeight = ReesePanel::kBaseHeight;
-    constexpr int kTopStripH = 34, kBottomBarY = 472;
+    constexpr int kTopStripH = 34, kBottomBarY = 586;
 }
 
 //==============================================================================
@@ -80,6 +80,29 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     }
     glideKnob.describeValue = [] (float v) { return v <= 0.0f ? String ("Off") : trimmed (v); };
     glideKnob.tooltipValue = [] (float v) { return v <= 0.0f ? String ("Off") : trimmed (v) + "   (" + formatGlide (v) + ")"; };
+
+    // LFO -> cutoff ------------------------------------------------------------------------------
+    addToggle (lfoOnButton, ParamIDs::lfoOn, "LFO on/off: modulates the filter cutoff");
+    addToggle (lfoSyncButton, ParamIDs::lfoSync, "Sync the LFO rate to the tempo (locked to the bar grid while the host plays)");
+    addToggle (lfoRetrigButton, ParamIDs::lfoRetrig, "Restart the LFO on every new note (legato notes don't restart it)");
+    addCombo (lfoShapeBox, ParamIDs::lfoShape, getLfoShapeNames(), "LFO shape");
+    addKnob (lfoRateKnob, ParamIDs::lfoRate, [] (float v) { return trimmed (v); }, "LFO Rate");
+    lfoRateKnob.tooltipValue = [] (float v)
+    {
+        const float hz = lfoRateToHz (v);
+        return trimmed (v) + "   (" + String (hz, hz < 1.0f ? 2 : 1) + " Hz)";
+    };
+    addKnob (lfoDivKnob, ParamIDs::lfoDiv, [] (float v) { return getLfoDivisionNames()[jlimit (0, 12, roundToInt (v))]; },
+             "LFO Rate (synced)");
+    addKnob (lfoDepthKnob, ParamIDs::lfoDepth, [] (float v) { return trimmed (v) + " st"; }, "LFO Depth (cutoff, +- semitones)");
+    addAndMakeVisible (lfoDisplay);
+
+    // Randomise ------------------------------------------------------------------------------------
+    randomiseButton.setTooltip ("Randomise the sections switched on to the right (their On buttons stay as they are)");
+    randomiseButton.onClick = [this] { processor.randomise(); };
+    addAndMakeVisible (randomiseButton);
+    addToggle (randLfoButton, ParamIDs::randLfo, "Include the LFO when randomising");
+    addToggle (randSatButton, ParamIDs::randSat, "Include the Saturation when randomising");
 
     // Presets -----------------------------------------------------------------------------------
     const auto& presets = getFactoryPresets();
@@ -291,7 +314,23 @@ void ReesePanel::resized()
     }
     aSyncButton.setBounds (826, 298, 42, 14);
 
-    scope.setBounds (8, 410, 864, 56);
+    // third row: LFO and Randomise
+    lfoPanel  = { 8.0f,   410.0f, 552.0f, 108.0f };
+    randPanel = { 566.0f, 410.0f, 306.0f, 108.0f };
+    lfoOnButton.setBounds (16, 434, 70, 20);
+    lfoSyncButton.setBounds (16, 459, 70, 20);
+    lfoRetrigButton.setBounds (16, 484, 70, 20);
+    lfoShapeBox.setBounds (96, 452, 120, 21);
+    lfoRateKnob.setBounds (222, 434, 60, 72);
+    lfoDivKnob.setBounds (222, 434, 60, 72);
+    lfoDepthKnob.setBounds (284, 434, 60, 72);
+    lfoDisplay.setBounds (352, 434, 200, 70);
+
+    randomiseButton.setBounds (580, 450, 128, 30);
+    randLfoButton.setBounds (722, 454, 56, 22);
+    randSatButton.setBounds (782, 454, 82, 22);
+
+    scope.setBounds (8, 524, 864, 56);
     helpButton.setBounds (kWidth - 26, kBottomBarY + 6, 20, 20);
     helpOverlay.setBounds (getLocalBounds());
 }
@@ -491,6 +530,10 @@ void ReesePanel::paint (Graphics& g)
     CustomLookAndFeel::drawPanel (g, stereoPanel, "Stereo / Output");
     CustomLookAndFeel::drawPanel (g, satPanel,    "Saturation");
     CustomLookAndFeel::drawPanel (g, ampPanel,    "Amp Envelope");
+    CustomLookAndFeel::drawPanel (g, lfoPanel,    "LFO  >  Filter Cutoff");
+    CustomLookAndFeel::drawSmallLabel (g, "Shape", { 96.0f, 437.0f, 120.0f, 12.0f }, Justification::centredLeft);
+    CustomLookAndFeel::drawPanel (g, randPanel,   "Randomise");
+    CustomLookAndFeel::drawSmallLabel (g, "Include", { 722.0f, 437.0f, 142.0f, 12.0f }, Justification::centredLeft);
 
     // --- bottom bar -----------------------------------------------------------------
     auto bar = Rectangle<float> (0.0f, (float) kBottomBarY, (float) kWidth, (float) (kHeight - kBottomBarY));
@@ -541,6 +584,20 @@ void ReesePanel::timerCallback()
                      "MONO BASS     " + (monoHz >= 1.0f ? "below " + formatLowHz (monoHz) : String ("Off")),
                      "PHASE LOCK    " + (lockHz >= 1.0f ? "below " + formatLowHz (lockHz) : String ("Off")),
                      "SPREAD        " + formatSpread (raw (ParamIDs::spread)) });
+
+    // LFO
+    {
+        const bool lfoOn = raw (ParamIDs::lfoOn) > 0.5f, synced = raw (ParamIDs::lfoSync) > 0.5f;
+        lfoRateKnob.setVisible (! synced);
+        lfoDivKnob.setVisible (synced);
+        const auto rateText = synced ? getLfoDivisionNames()[jlimit (0, 12, roundToInt (raw (ParamIDs::lfoDiv)))]
+                                     : String (lfoRateToHz (raw (ParamIDs::lfoRate)), 2) + " Hz";
+        lfoDisplay.setState ((int) raw (ParamIDs::lfoShape), gui.lfoPhase.load(), lfoOn, rateText);
+        for (Component* c : { (Component*) &lfoShapeBox, (Component*) &lfoRateKnob, (Component*) &lfoDivKnob,
+                              (Component*) &lfoDepthKnob, (Component*) &lfoSyncButton, (Component*) &lfoRetrigButton })
+            setActive (*c, lfoOn);
+        setActive (randomiseButton, raw (ParamIDs::randLfo) > 0.5f || raw (ParamIDs::randSat) > 0.5f);
+    }
 
     const int program = processor.getCurrentProgram();
     if (program != lastShownProgram)

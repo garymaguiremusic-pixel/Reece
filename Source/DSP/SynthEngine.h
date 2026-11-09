@@ -39,6 +39,14 @@ namespace rs
         float envSemis = 0.0f;       // filter envelope depth
         float keyTrack = 0.5f;       // 0..1
 
+        // LFO -> cutoff
+        bool lfoOn = false;
+        int lfoShape = LfoSine;
+        bool lfoSync = true, lfoRetrig = false;
+        float lfoHz = 1.0f;          // free rate
+        double lfoBeats = 0.5;       // synced cycle length in beats
+        float lfoDepthSemis = 24.0f;
+
         float fA = 1.0f, fD = 300.0f, fS = 0.3f, fR = 200.0f;   // ms / level
         float aA = 1.0f, aD = 300.0f, aS = 1.0f, aR = 100.0f;
     };
@@ -137,6 +145,11 @@ namespace rs
 
         int getNumActiveVoices() const noexcept;
 
+        /** Host position for the synced LFO (call once per block, before render). */
+        void setTransport (double bpm, double ppqAtBlockStart, bool playing) noexcept;
+        float getLfoPhase() const noexcept   { return (float) lfoPhase; }
+        float getLfoValue() const noexcept   { return lfoOut; }
+
     private:
         void renderChunk (float* left, float* right, int numSamples) noexcept;
         void prepareShared() noexcept;
@@ -154,6 +167,14 @@ namespace rs
         int heldCount[128] {};                       // note-ons minus note-offs per pitch
         std::int64_t samplesSinceRelease = 1 << 30;  // since the mono voice was last let go
         float bendSemis = 0.0f;
+
+        // LFO
+        float lfoValueAt (double phase) noexcept;
+        void restartLfo() noexcept;
+        double lfoPhase = 0.0, transportBpm = 120.0, transportPpq = 0.0;
+        bool transportPlaying = false, lfoFollowsHost = true;
+        float lfoOut = 0.0f, lfoSmoothed = 0.0f, lfoHold = 0.0f;
+        std::uint32_t lfoRandom = 0x12345678u;
 
         // smoothed controls (one-pole, per sample)
         float cutoffSm = 62.0f, resSm = 0.0f, lockSm = 0.0f, smoothCoef = 0.001f;

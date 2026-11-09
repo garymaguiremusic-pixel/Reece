@@ -239,6 +239,84 @@ void LcdDisplay::paint (Graphics& g)
 }
 
 //==============================================================================
+// LfoDisplay
+//==============================================================================
+void LfoDisplay::setState (int newShape, float newPhase, bool newOn, const String& newRateText)
+{
+    if (newShape != shape || std::abs (newPhase - phase) > 1.0e-4f || newOn != on || newRateText != rateText)
+    {
+        shape = newShape;
+        phase = newPhase;
+        on = newOn;
+        rateText = newRateText;
+        repaint();
+    }
+}
+
+float LfoDisplay::valueAt (float p) const
+{
+    switch (shape)
+    {
+        case 1:  return 1.0f - 4.0f * std::abs (p - 0.5f);
+        case 2:  return 2.0f * p - 1.0f;
+        case 3:  return 1.0f - 2.0f * p;
+        case 4:  return p < 0.5f ? 1.0f : -1.0f;
+        case 5:
+        {
+            // a fixed stepped pattern to show the idea of sample & hold
+            static constexpr float steps[] = { 0.6f, -0.3f, 0.9f, -0.8f, 0.1f, -0.5f, 0.75f, -0.1f };
+            return steps[jlimit (0, 7, (int) (p * 8.0f))];
+        }
+        default: return std::sin (MathConstants<float>::twoPi * p);
+    }
+}
+
+void LfoDisplay::paint (Graphics& g)
+{
+    auto b = getLocalBounds().toFloat().reduced (1.0f);
+    CustomLookAndFeel::drawLcd (g, b, ! on);
+
+    auto plot = b.reduced (8.0f, 7.0f);
+    auto label = plot.removeFromRight (64.0f);
+
+    g.setColour (Colours::white.withAlpha (0.12f));
+    g.drawHorizontalLine ((int) plot.getCentreY(), plot.getX(), plot.getRight());
+
+    // two cycles; Sample & Hold uses one stepped cycle
+    const int cycles = shape == 5 ? 1 : 2;
+    const float amp = plot.getHeight() * 0.45f;
+    Path wave;
+    const int points = (int) plot.getWidth();
+    for (int i = 0; i <= points; ++i)
+    {
+        const float ph = (float) cycles * (float) i / (float) points;
+        const float x = plot.getX() + (float) i;
+        const float y = plot.getCentreY() - valueAt (ph - std::floor (ph)) * amp;
+        if (i == 0) wave.startNewSubPath (x, y);
+        else        wave.lineTo (x, y);
+    }
+    const auto lineColour = on ? Colours::white : Colour (0xff9aa1a8);
+    g.setColour (lineColour.withAlpha (0.25f));
+    g.strokePath (wave, PathStrokeType (3.5f));
+    g.setColour (lineColour);
+    g.strokePath (wave, PathStrokeType (1.4f));
+
+    if (on)
+    {
+        const float px = plot.getX() + phase / (float) cycles * plot.getWidth();
+        const float py = plot.getCentreY() - valueAt (phase) * amp;
+        g.setColour (Colour (0xffc9e6ff).withAlpha (0.35f));
+        g.fillEllipse (px - 5.0f, py - 5.0f, 10.0f, 10.0f);
+        g.setColour (Colours::white);
+        g.fillEllipse (px - 2.5f, py - 2.5f, 5.0f, 5.0f);
+    }
+
+    g.setFont (CustomLookAndFeel::uiFont (11.0f, true));
+    g.setColour (on ? Colours::white : Colour (0xff8a9097));
+    g.drawFittedText (on ? rateText : String ("OFF"), label.toNearestInt(), Justification::centredRight, 2, 0.8f);
+}
+
+//==============================================================================
 // ScopeDisplay
 //==============================================================================
 void ScopeDisplay::update (const float* left, const float* right, int size, int writeIndex)
@@ -385,6 +463,8 @@ void HelpOverlay::paint (Graphics& g)
         "SPREAD:  stereo width. Left = mono, centre = 100 %, right = 200 %",
         "SATURATION:  the KickDrum saturation (Soft, Tape, Tube, Hard Clip, Foldback, Fuzz), 4x oversampled",
         "MODE:  Mono (retrigger), Legato (no retrigger, also across loop points) or Poly (8 notes).  GLIDE:  portamento",
+        "LFO:  modulates the filter cutoff. Shape, Rate (or Sync to note values on the bar grid), Depth, Retrig",
+        "RANDOMISE:  randomises the LFO and / or Saturation, as chosen by the small LFO / Saturation buttons",
         "SYNC (envelopes):  Attack / Decay / Release lock to the tempo: 1/512, 1/256 ... 1/2, 1/1 (one step per value)",
         "Knobs move in steps of 1; hold Shift for 0.1 steps. Scroll wheel too. Double-click = 0.",
         "Drag the bottom-right corner to resize the window.",

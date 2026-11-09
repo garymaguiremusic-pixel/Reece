@@ -72,6 +72,14 @@ EngineSettings ReeseAudioProcessor::makeEngineSettings() const
     s.glideMs     = glideToMs (raw (ParamIDs::glide));
     s.phaseLockHz = raw (ParamIDs::phaseLock);
 
+    s.lfoOn         = raw (ParamIDs::lfoOn) > 0.5f;
+    s.lfoShape      = jlimit (0, NumLfoShapes - 1, (int) raw (ParamIDs::lfoShape));
+    s.lfoSync       = raw (ParamIDs::lfoSync) > 0.5f;
+    s.lfoRetrig     = raw (ParamIDs::lfoRetrig) > 0.5f;
+    s.lfoHz         = lfoRateToHz (raw (ParamIDs::lfoRate));
+    s.lfoBeats      = lfoDivisionBeats ((int) raw (ParamIDs::lfoDiv));
+    s.lfoDepthSemis = raw (ParamIDs::lfoDepth);
+
     s.filterType   = jlimit (0, 2, (int) raw (ParamIDs::fltType));
     s.filterStages = jlimit (1, 3, (int) raw (ParamIDs::fltSlope) + 1);
     s.cutoff       = raw (ParamIDs::cutoff);
@@ -117,13 +125,24 @@ void ReeseAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& 
     if (num == 0 || buffer.getNumChannels() < 2)
         return;
 
-    // host tempo for the synced envelopes (120 BPM when the host gives none)
+    // host tempo for the synced envelopes and LFO (120 BPM when the host gives none),
+    // and the bar position so a synced LFO stays on the grid
+    double ppq = 0.0;
+    bool playing = false;
     if (auto* ph = getPlayHead())
         if (auto position = ph->getPosition())
+        {
             if (auto hostBpm = position->getBpm())
                 if (*hostBpm > 1.0)
                     bpm = *hostBpm;
+            if (auto hostPpq = position->getPpqPosition())
+            {
+                ppq = *hostPpq;
+                playing = position->getIsPlaying();
+            }
+        }
     gui.bpm.store ((float) bpm, std::memory_order_relaxed);
+    engine.setTransport (bpm, ppq, playing);
 
     engine.setSettings (makeEngineSettings());
 
@@ -156,6 +175,8 @@ void ReeseAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& 
 
     processOutput (buffer);
     gui.activeVoices.store (engine.getNumActiveVoices(), std::memory_order_relaxed);
+    gui.lfoPhase.store (engine.getLfoPhase(), std::memory_order_relaxed);
+    gui.lfoValue.store (engine.getLfoValue(), std::memory_order_relaxed);
 }
 
 void ReeseAudioProcessor::processOutput (AudioBuffer<float>& buffer) noexcept
@@ -247,6 +268,42 @@ void ReeseAudioProcessor::setCurrentProgram (int index)
     for (const auto& [id, value] : presets[(size_t) index].values)
         if (auto* p = apvts.getParameter (id))
             p->setValueNotifyingHost (p->convertTo0to1 (value));
+}
+
+//==============================================================================
+void ReeseAudioProcessor::randomise()
+{
+    auto set = [this] (const String& id, float value)
+    {
+        if (auto* p = apvts.getParameter (id))
+        {
+            p->beginChangeGesture();
+            p->setValueNotifyingHost (p->convertTo0to1 (value));
+            p->endChangeGesture();
+        }
+    };
+    auto range = [this] (float lo, float hi) { return lo + randomiser.nextFloat() * (hi - lo); };
+    auto whole = [] (float v) { return std::round (v); };     // knobs show whole steps
+
+    // The On buttons are left as they are: only the settings change.
+    if (raw (ParamIDs::randLfo) > 0.5f)
+    {
+        set (ParamIDs::lfoShape, (float) randomiser.nextInt (NumLfoShapes));
+        set (ParamIDs::lfoSync, randomiser.nextFloat() < 0.75f ? 1.0f : 0.0f);
+        set (ParamIDs::lfoDiv, (float) (3 + randomiser.nextInt (8)));          // 1/1 .. 1/16T
+        set (ParamIDs::lfoRate, whole (range (25.0f, 80.0f)));                  // ~0.2 .. 6 Hz
+        set (ParamIDs::lfoDepth, whole (range (6.0f, 48.0f)));                  // semitones
+    }
+
+    if (raw (ParamIDs::randSat) > 0.5f)
+    {
+        const float drive = whole (range (3.0f, 24.0f));
+        set (ParamIDs::satType, (float) randomiser.nextInt (6));
+        set (ParamIDs::satDrive, drive);
+        set (ParamIDs::satTone, whole (range (40.0f, 100.0f)));
+        set (ParamIDs::satMix, whole (range (40.0f, 100.0f)));
+        set (ParamIDs::satLevel, whole (jlimit (-24.0f, 0.0f, -drive * 0.4f)));   // keeps the level roughly even
+    }
 }
 
 //==============================================================================

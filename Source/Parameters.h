@@ -82,6 +82,19 @@ namespace rs
         inline constexpr const char* satMix   = "satMix";
         inline constexpr const char* satLevel = "satLevel";
 
+        // LFO -> filter cutoff
+        inline constexpr const char* lfoOn     = "lfoOn";
+        inline constexpr const char* lfoShape  = "lfoShape";
+        inline constexpr const char* lfoSync   = "lfoSync";
+        inline constexpr const char* lfoRate   = "lfoRate";       // free rate, knob 0..100
+        inline constexpr const char* lfoDiv    = "lfoDiv";        // synced note value
+        inline constexpr const char* lfoDepth  = "lfoDepth";      // semitones
+        inline constexpr const char* lfoRetrig = "lfoRetrig";
+
+        // Randomise targets
+        inline constexpr const char* randLfo = "randLfo";
+        inline constexpr const char* randSat = "randSat";
+
         // Output
         inline constexpr const char* spread = "spread";
         inline constexpr const char* volume = "volume";
@@ -101,6 +114,21 @@ namespace rs
     inline juce::StringArray getNoiseFilterNames() { return { "Low Pass", "Band Pass", "High Pass" }; }
     inline juce::StringArray getSlopeNames()     { return { "12 dB/oct", "24 dB/oct", "36 dB/oct" }; }
     inline juce::StringArray getSatTypeNames()   { return { "Soft", "Tape", "Tube", "Hard Clip", "Foldback", "Fuzz" }; }
+
+    enum LfoShape : int { LfoSine = 0, LfoTriangle, LfoSawUp, LfoSawDown, LfoSquare, LfoSampleHold, NumLfoShapes };
+    inline juce::StringArray getLfoShapeNames() { return { "Sine", "Triangle", "Saw Up", "Saw Down", "Square", "Sample & Hold" }; }
+
+    /** LFO sync note values, slowest first, and their length in beats. */
+    inline juce::StringArray getLfoDivisionNames()
+    {
+        return { "8/1", "4/1", "2/1", "1/1", "1/2", "1/4", "1/4T", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/64" };
+    }
+    inline double lfoDivisionBeats (int index)
+    {
+        static constexpr double beats[] = { 32.0, 16.0, 8.0, 4.0, 2.0, 1.0, 2.0 / 3.0, 0.5, 1.0 / 3.0, 0.25, 1.0 / 6.0, 0.125, 0.0625 };
+        return beats[juce::jlimit (0, (int) std::size (beats) - 1, index)];
+    }
+    inline float lfoRateToHz (float v)   { return 0.05f * std::pow (400.0f, juce::jlimit (0.0f, 100.0f, v) * 0.01f); }   // 0.05 .. 20 Hz
 
     /** Envelope sync divisions, shortest first: 1/512 .. 1/1 (1/1 = one bar of 4/4). */
     inline juce::StringArray getSyncDivisionNames()
@@ -272,6 +300,20 @@ namespace rs
         addFloat  (ParamIDs::satTone, "Tone", { 0.0f, 100.0f }, 100.0f, formatPercent, "%");
         addFloat  (ParamIDs::satMix, "Saturation Mix", { 0.0f, 100.0f }, 100.0f, formatPercent, "%");
         addFloat  (ParamIDs::satLevel, "Saturation Level", { -24.0f, 6.0f }, 0.0f, formatDb, "dB");
+
+        // LFO -----------------------------------------------------------------------------------
+        addBool   (ParamIDs::lfoOn, "LFO On", false);
+        addChoice (ParamIDs::lfoShape, "LFO Shape", getLfoShapeNames(), LfoSine);
+        addBool   (ParamIDs::lfoSync, "LFO Sync", true);
+        addFloat  (ParamIDs::lfoRate, "LFO Rate", { 0.0f, 100.0f }, 50.0f,
+                   [] (float v) { const float hz = lfoRateToHz (v); return juce::String (hz, hz < 1.0f ? 2 : 1) + " Hz"; });
+        addChoice (ParamIDs::lfoDiv, "LFO Sync Rate", getLfoDivisionNames(), 7);
+        addFloat  (ParamIDs::lfoDepth, "LFO Depth", { 0.0f, 96.0f }, 24.0f, [] (float v) { return trimmed (v) + " st"; }, "st");
+        addBool   (ParamIDs::lfoRetrig, "LFO Retrigger", false);
+
+        // Randomise targets ------------------------------------------------------------------
+        addBool (ParamIDs::randLfo, "Randomise LFO", true);
+        addBool (ParamIDs::randSat, "Randomise Saturation", true);
 
         // Output --------------------------------------------------------------------------------
         addFloat (ParamIDs::spread, "Stereo Spread", { 0.0f, 200.0f }, 100.0f, formatSpread, "%");

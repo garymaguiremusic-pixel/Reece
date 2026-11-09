@@ -34,6 +34,9 @@ public:
     const juce::String getProgramName (int index) override;
     void changeProgramName (int, const juce::String&) override {}
 
+    /** Randomises the LFO and/or Saturation sections, as chosen by their Randomise buttons (message thread). */
+    void randomise();
+
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
@@ -50,6 +53,7 @@ public:
         std::atomic<float> peak { 0.0f };
         std::atomic<int> editorWidth { 0 };    // remembered editor size (0 = default)
         std::atomic<float> bpm { (float) rs::kDefaultBpm };
+        std::atomic<float> lfoPhase { 0.0f }, lfoValue { 0.0f };
     };
     GuiState gui;
 
@@ -68,6 +72,7 @@ private:
     double bpm = rs::kDefaultBpm;
 
     std::atomic<int> currentProgram { 0 };
+    juce::Random randomiser;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReeseAudioProcessor)
 };

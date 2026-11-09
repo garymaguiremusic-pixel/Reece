@@ -14,6 +14,9 @@ static int writeSnapshot (const juce::File& file, int width, int preset)
     if (juce::SystemStats::getEnvironmentVariable ("REESE_SNAPSHOT_NOISE", {}).isNotEmpty())
         for (auto [id, v] : { std::pair<const char*, float> { "osc2Wave", 7.0f / 7.0f }, { "osc2Retrig", 1.0f } })
             processor.apvts.getParameter (id)->setValueNotifyingHost (v);
+    if (juce::SystemStats::getEnvironmentVariable ("REESE_SNAPSHOT_LFO", {}).isNotEmpty())
+        for (auto* id : { "lfoOn", "satOn" })
+            processor.apvts.getParameter (id)->setValueNotifyingHost (1.0f);
     if (juce::SystemStats::getEnvironmentVariable ("REESE_SNAPSHOT_SYNC", {}).isNotEmpty())
         for (auto* id : { "aSync", "fSync" })
             processor.apvts.getParameter (id)->setValueNotifyingHost (1.0f);
