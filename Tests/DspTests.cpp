@@ -683,7 +683,7 @@ public:
 
     void runTest() override
     {
-        beginTest ("Every stepped knob shows its value in 1.0 steps");
+        beginTest ("Every knob shows its value in 1.0 steps");
         ReeseAudioProcessor processor;
         std::unique_ptr<AudioProcessorEditor> editor (processor.createEditor());
         Array<VirusKnob*> knobs;
@@ -693,8 +693,7 @@ public:
         int checked = 0;
         for (auto* k : knobs)
         {
-            if (k->isContinuous())
-                continue;       // Cutoff / Reso: smooth, no steps (by request)
+            expect (! k->isContinuous(), "every knob moves in 1.0 steps");
             const String knobName = k->getTooltip().upToFirstOccurrenceOf ("  ", false, false);
             for (double v = std::ceil (k->getMinimum()); v + 1.0 <= k->getMaximum(); v += 1.0)
             {
@@ -713,6 +712,33 @@ public:
             }
         }
         logMessage (String (checked) + " knob steps checked");
+
+        beginTest ("Every knob follows the mouse wheel: 1.0 per notch, 0.1 with Shift");
+        {
+            auto source = Desktop::getInstance().getMainMouseSource();
+            MouseWheelDetails notchUp { 0.0f, 0.15f, false, false, false };
+            int wheelChecked = 0;
+            for (auto* k : knobs)
+            {
+                k->setEnabled (true);        // some knobs are greyed out in the default patch
+                const double start = std::round ((k->getMinimum() + k->getMaximum()) * 0.5);
+                for (bool shift : { false, true })
+                {
+                    k->setValue (start, dontSendNotification);
+                    const MouseEvent e (source, { 10.0f, 10.0f },
+                                        shift ? ModifierKeys (ModifierKeys::shiftModifier) : ModifierKeys(),
+                                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, k, k, Time(), {}, Time(), 0, false);
+                    k->mouseWheelMove (e, notchUp);
+                    const double step = k->getValue() - start;
+                    const auto knobName = k->getTooltip().upToFirstOccurrenceOf ("  ", false, false);
+                    // whole-number parameters (Voices, note values) can't take a 0.1 step
+                    if (! (shift && std::abs (step) < 1.0e-9))
+                        expectWithinAbsoluteError (step, shift ? 0.1 : 1.0, 1.0e-3, knobName + (shift ? " (shift)" : ""));
+                    ++wheelChecked;
+                }
+            }
+            logMessage (String (wheelChecked) + " wheel moves checked");
+        }
     }
 };
 

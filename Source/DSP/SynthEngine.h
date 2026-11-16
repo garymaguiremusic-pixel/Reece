@@ -177,6 +177,7 @@ namespace rs
         std::uint32_t lfoRandom = 0x12345678u;
 
         // smoothed controls (one-pole, per sample)
+        float noiseCutoffSm[kNumOscs] { 100.0f, 100.0f };
         float cutoffSm = 62.0f, resSm = 0.0f, lockSm = 0.0f, smoothCoef = 0.001f;
         bool firstBlock = true;
     };

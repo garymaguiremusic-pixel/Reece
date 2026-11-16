@@ -335,6 +335,8 @@ namespace rs
         if (firstBlock)
         {
             cutoffSm = s.cutoff;
+            for (int o = 0; o < kNumOscs; ++o)
+                noiseCutoffSm[o] = s.osc[o].noiseCutoff;
             resSm = s.resonance;
             lockSm = s.phaseLockHz;
             firstBlock = false;
@@ -372,7 +374,8 @@ namespace rs
             shared.noiseR[o] = std::sin (angle) * 1.41421356f * os.gain;
             // FM depth in cycles of phase shift per unit of modulator (up to 2 cycles = ~12.6 rad)
             shared.fmDepth[o] = os.fmOn ? 2.0f * os.fmAmount * os.fmAmount : 0.0f;
-            shared.noiseG[o] = svfG (20.0f * std::pow (1000.0f, std::clamp (os.noiseCutoff, 0.0f, 100.0f) * 0.01f), (float) sampleRate);
+            noiseCutoffSm[o] += (std::clamp (os.noiseCutoff, 0.0f, 100.0f) - noiseCutoffSm[o]) * 0.35f;
+            shared.noiseG[o] = svfG (20.0f * std::pow (1000.0f, noiseCutoffSm[o] * 0.01f), (float) sampleRate);
             shared.noiseK[o] = 1.0f / (0.70710678f + os.noiseReso * os.noiseReso * 11.0f);
 
             if (os.gain > 0.0f && os.wave != WaveNoise)

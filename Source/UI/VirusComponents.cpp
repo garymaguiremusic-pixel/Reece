@@ -44,27 +44,21 @@ void VirusKnob::paint (Graphics& g)
     const float pos = (float) valueToProportionOfLength (getValue());
     const auto rotary = getRotaryParameters();
 
-    Rectangle<float> knobArea;
-    if (knobSize == Size::Large)
+    // Every knob, large or small, has a label underneath that shows the value while
+    // hovering or turning it.
+    auto labelArea = bounds.removeFromBottom (14.0f);
+    const float side = std::min (bounds.getWidth(), bounds.getHeight());
+    const auto knobArea = bounds.withSizeKeepingCentre (side, side);
+
+    if ((hovering || dragging) && isEnabled())
     {
-        knobArea = bounds;
+        g.setFont (CustomLookAndFeel::uiFont (11.0f, true));
+        g.setColour (VirusColours::blue);
+        g.drawFittedText (getValueText(), labelArea.toNearestInt(), Justification::centred, 1, 0.7f);
     }
     else
     {
-        auto labelArea = bounds.removeFromBottom (14.0f);
-        const float side = std::min (bounds.getWidth(), bounds.getHeight());
-        knobArea = bounds.withSizeKeepingCentre (side, side);
-
-        if ((hovering || dragging) && isEnabled())
-        {
-            g.setFont (CustomLookAndFeel::uiFont (11.0f, true));
-            g.setColour (VirusColours::blue);
-            g.drawFittedText (getValueText(), labelArea.toNearestInt(), Justification::centred, 1, 0.7f);
-        }
-        else
-        {
-            CustomLookAndFeel::drawSmallLabel (g, label, labelArea);
-        }
+        CustomLookAndFeel::drawSmallLabel (g, label, labelArea);
     }
 
     getLookAndFeel().drawRotarySlider (g, (int) knobArea.getX(), (int) knobArea.getY(),

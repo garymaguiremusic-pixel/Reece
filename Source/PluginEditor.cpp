@@ -26,7 +26,8 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     // Filter ------------------------------------------------------------------------------
     addCombo (filterTypeBox, ParamIDs::fltType, getFilterTypeNames(), "Filter type");
     addCombo (slopeBox, ParamIDs::fltSlope, getSlopeNames(), "Filter slope");
-    addKnob (cutoffKnob, ParamIDs::cutoff, formatCutoff, "Filter Cutoff");
+    // Cutoff: the knob number (1.0 steps) and the frequency it gives
+    addKnob (cutoffKnob, ParamIDs::cutoff, [] (float v) { return trimmed (v) + "   " + formatCutoff (v); }, "Filter Cutoff");
     addKnob (resonanceKnob, ParamIDs::resonance, formatPercent, "Filter Resonance");
     addKnob (envAmtKnob, ParamIDs::fltEnv, formatSemis, "Filter Envelope Amount");
     addKnob (keyTrackKnob, ParamIDs::keyTrack, formatPercent, "Filter Key Tracking");
@@ -34,8 +35,6 @@ ReesePanel::ReesePanel (ReeseAudioProcessor& p)
     addKnob (fDecay, ParamIDs::fDecay, formatEnvTime, "Filter Decay");
     addKnob (fSustain, ParamIDs::fSustain, formatPercent, "Filter Sustain");
     addKnob (fRelease, ParamIDs::fRelease, formatEnvTime, "Filter Release");
-    cutoffKnob.setContinuous (true);       // the filter moves smoothly, with no steps
-    resonanceKnob.setContinuous (true);
 
     // Voice ----------------------------------------------------------------------------------
     addCombo (playModeBox, ParamIDs::playMode, getPlayModeNames(), "Mono (retrigger), Legato (glide, no retrigger) or Poly (8 notes)");
@@ -194,8 +193,8 @@ void ReesePanel::setupOsc (int o)
     addCombo (c.noiseFilterBox, oscParam (o, ParamIDs::noiseFilter), getNoiseFilterNames(), n + "noise filter type (Noise only)");
     addKnob (c.noiseCutoff, oscParam (o, ParamIDs::noiseCutoff), formatCutoff, n + "Noise Filter Cutoff");
     addKnob (c.noiseReso, oscParam (o, ParamIDs::noiseReso), formatPercent, n + "Noise Filter Resonance");
-    c.noiseCutoff.setContinuous (true);
-    c.noiseReso.setContinuous (true);
+    c.noiseCutoff.describeValue = [] (float v) { return trimmed (v); };
+    c.noiseCutoff.tooltipValue = [] (float v) { return trimmed (v) + "   (" + formatCutoff (v) + ")"; };
 
     c.pw.inactiveHint = "Pulse width is used by the Pulse wave";
     c.detune.inactiveHint = "Set VOICES above 1 to spread a unison stack";
@@ -263,7 +262,7 @@ void ReesePanel::resized()
     filterPanel = { 580.0f, 40.0f, 292.0f, 250.0f };
     filterTypeBox.setBounds (592, 78, 130, 22);
     slopeBox.setBounds (730, 78, 130, 22);
-    cutoffKnob.setBounds (592, 106, 96, 96);
+    cutoffKnob.setBounds (592, 98, 96, 108);      // knob + value label underneath
     resonanceKnob.setBounds (698, 118, 56, 72);
     envAmtKnob.setBounds (754, 118, 56, 72);
     keyTrackKnob.setBounds (810, 118, 56, 72);

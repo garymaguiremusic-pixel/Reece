@@ -60,8 +60,9 @@ It appears as an instrument under **VirusDelay Project**.
 * Analog-style **Low Pass / Band Pass / High Pass**, **12, 24 or 36 dB/oct** (1-3 zero-delay-feedback
   state-variable stages with Butterworth spacing). Each stage saturates gently on its input and integrator,
   like an OTA filter, so high resonance stays round instead of whistling.
-* **Cutoff** (20 Hz-20 kHz) and **Reso** move smoothly with no steps. The cutoff is smoothed and
-  recalculated every sample.
+* **Cutoff** (20 Hz-20 kHz) and **Reso** step by 1.0 like every other knob (Shift = 0.1). The sound stays
+  smooth: the cutoff glides between steps and is recalculated every sample, so there is no zipper noise.
+  The Cutoff knob shows its number and frequency underneath while you turn or hover it.
 * **Env Amt** (-96 to +96 semitones, 1 semitone per step), **Key Track**, and a filter envelope
   (Attack, Decay, Sustain, Release).
 
@@ -99,12 +100,12 @@ the current tempo. Sustain stays a level. Switching Sync off goes back to the fr
 
 ## Controls
 
-* Every knob moves in steps of **1.0** when you drag or use the mouse wheel. Hold **Shift** for **0.1** steps.
-  Cutoff and Reso are the exception and move continuously. Envelope times and Glide show their knob
-  number (0-100, 1.0 per step); the tooltip shows the time in ms. A unit test turns every stepped knob in
-  the real editor through its whole range and fails the build if any shown value moves by anything but 1.0. **Double-click a knob to set it to 0** (knobs
-  that can't be 0 go to their nearest value: Voices -> 1, PW -> 1 %). Hover
-  to see its value in real units. The cutoff frequency is shown in the Filter header.
+* Every knob moves in steps of **1.0** when you drag it or use the mouse wheel. Hold **Shift** for **0.1** steps.
+  Double-click a knob to set it to 0 (knobs that can't be 0 go to their nearest value: Voices -> 1, PW -> 1 %).
+  Hover or turn a knob to see its value under it; the tooltip adds real units (ms, Hz).
+  Envelope times, Glide and LFO Rate show their knob number (0-100); the tooltip shows the time or rate.
+  A unit test turns every knob in the real editor through its whole range, and with the mouse wheel, and
+  fails the build if any knob moves or shows anything but 1.0 per step (0.1 with Shift).
 * The window is resizable from the bottom-right corner (70-200 %) and remembers its size.
 * 10 factory presets.
 

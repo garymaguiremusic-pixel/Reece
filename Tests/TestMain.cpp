@@ -2,6 +2,7 @@
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
 #include "PluginProcessor.h"
+#include "UI/VirusComponents.h"
 
 //==============================================================================
 // Renders the editor to a PNG without a display:
@@ -38,6 +39,24 @@ static int writeSnapshot (const juce::File& file, int width, int preset)
     if (width > 0)
         editor->setSize (width, juce::roundToInt (width * (double) editor->getHeight() / editor->getWidth()));
     juce::MessageManager::getInstance()->runDispatchLoopUntil (1500);
+
+    // REESE_SNAPSHOT_HOVER=<knob name>: show that knob as if the mouse were over it
+    const auto hover = juce::SystemStats::getEnvironmentVariable ("REESE_SNAPSHOT_HOVER", {});
+    if (hover.isNotEmpty())
+    {
+        std::function<void (juce::Component&)> visit = [&] (juce::Component& c)
+        {
+            for (auto* child : c.getChildren())
+            {
+                if (auto* knob = dynamic_cast<VirusKnob*> (child))
+                    if (knob->getName() == hover)
+                        knob->mouseEnter (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {}, 0.0f, 0.0f, 0.0f,
+                                                            0.0f, 0.0f, knob, knob, juce::Time(), {}, juce::Time(), 0, false));
+                visit (*child);
+            }
+        };
+        visit (*editor);
+    }
 
     const auto image = editor->createComponentSnapshot (editor->getLocalBounds(), true, 1.0f);
     file.deleteFile();
