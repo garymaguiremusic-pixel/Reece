@@ -453,7 +453,7 @@ void HelpOverlay::paint (Graphics& g)
         "MONO BASS:  everything below this frequency is summed to mono (Off - 200 Hz)",
         "PHASE LOCK:  below this frequency the oscillators are retriggered and held in phase, so the sub",
         "        never beats or cancels; above it the detuned Reese movement stays (Off - 200 Hz)",
-        "FILTER:  analog-style Low / Band / High Pass, 12, 24 or 36 dB/oct. Cutoff and Resonance move smoothly",
+        "FILTER:  analog-style Low / Band / High Pass, 12, 24 or 36 dB/oct. Cutoff shows its value under the knob",
         "SPREAD:  stereo width. Left = mono, centre = 100 %, right = 200 %",
         "SATURATION:  the KickDrum saturation (Soft, Tape, Tube, Hard Clip, Foldback, Fuzz), 4x oversampled",
         "MODE:  Mono (retrigger), Legato (no retrigger, also across loop points) or Poly (8 notes).  GLIDE:  portamento",
