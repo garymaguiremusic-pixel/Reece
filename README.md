@@ -1,6 +1,6 @@
 # Reese
 
-A Reese bass instrument (VST3, Windows x64) in the Virus Delay family look. It has two detunable
+A Reese bass instrument (VST3, Windows x64) in the Virus Delay family layout, with the LeadVerb colour theme (black, orange accent). It has two detunable
 oscillators with unison, controls to keep the low end mono and in phase, an analog-style multimode
 filter, and the KickDrum saturation.
 

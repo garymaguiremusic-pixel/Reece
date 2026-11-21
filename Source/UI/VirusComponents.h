@@ -71,7 +71,7 @@ private:
 };
 
 //==============================================================================
-/** Blue LCD readout, e.g. "CUTOFF   1.20 kHz". */
+/** Black-glass LCD readout: name in light grey, value in orange, e.g. "CUTOFF   1.20 kHz". */
 class LcdDisplay : public juce::Component,
                    public juce::SettableTooltipClient
 {
@@ -86,7 +86,7 @@ private:
 };
 
 //==============================================================================
-/** LFO waveform on a blue LCD, with a dot at the current phase (dimmed when the LFO is off). */
+/** LFO waveform (orange) on a black-glass LCD, with a dot at the current phase (dimmed when the LFO is off). */
 class LfoDisplay : public juce::Component
 {
 public:

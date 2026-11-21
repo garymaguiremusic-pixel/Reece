@@ -53,7 +53,7 @@ void VirusKnob::paint (Graphics& g)
     if ((hovering || dragging) && isEnabled())
     {
         g.setFont (CustomLookAndFeel::uiFont (11.0f, true));
-        g.setColour (VirusColours::blue);
+        g.setColour (VirusColours::accent);
         g.drawFittedText (getValueText(), labelArea.toNearestInt(), Justification::centred, 1, 0.7f);
     }
     else
@@ -219,7 +219,8 @@ void LcdDisplay::paint (Graphics& g)
     auto b = getLocalBounds().toFloat().reduced (1.0f);
     CustomLookAndFeel::drawLcd (g, b, dimmed);
 
-    const auto textColour = dimmed ? Colour (0xff8a9097) : Colours::white;
+    const auto nameColour  = dimmed ? VirusColours::dimText : VirusColours::lightGrey;
+    const auto valueColour = dimmed ? VirusColours::dimText : VirusColours::accent;
     auto textArea = b.reduced (6.0f, 0.0f);
     const auto just = nameText.isEmpty() ? Justification::centred : Justification::centredRight;
 
@@ -227,8 +228,9 @@ void LcdDisplay::paint (Graphics& g)
     g.setColour (Colours::black.withAlpha (0.35f));
     g.drawText (nameText, textArea.translated (0.0f, 1.0f), Justification::centredLeft);
     g.drawText (valueText, textArea.translated (0.0f, 1.0f), just);
-    g.setColour (textColour);
+    g.setColour (nameColour);
     g.drawText (nameText, textArea, Justification::centredLeft);
+    g.setColour (valueColour);
     g.drawText (valueText, textArea, just);
 }
 
@@ -289,24 +291,23 @@ void LfoDisplay::paint (Graphics& g)
         if (i == 0) wave.startNewSubPath (x, y);
         else        wave.lineTo (x, y);
     }
-    const auto lineColour = on ? Colours::white : Colour (0xff9aa1a8);
-    g.setColour (lineColour.withAlpha (0.25f));
+    g.setColour ((on ? VirusColours::accentGlow : VirusColours::dimText).withAlpha (0.3f));
     g.strokePath (wave, PathStrokeType (3.5f));
-    g.setColour (lineColour);
+    g.setColour (on ? VirusColours::accent : VirusColours::dimText);
     g.strokePath (wave, PathStrokeType (1.4f));
 
     if (on)
     {
         const float px = plot.getX() + phase / (float) cycles * plot.getWidth();
         const float py = plot.getCentreY() - valueAt (phase) * amp;
-        g.setColour (Colour (0xffc9e6ff).withAlpha (0.35f));
+        g.setColour (VirusColours::accentLight.withAlpha (0.35f));
         g.fillEllipse (px - 5.0f, py - 5.0f, 10.0f, 10.0f);
         g.setColour (Colours::white);
         g.fillEllipse (px - 2.5f, py - 2.5f, 5.0f, 5.0f);
     }
 
     g.setFont (CustomLookAndFeel::uiFont (11.0f, true));
-    g.setColour (on ? Colours::white : Colour (0xff8a9097));
+    g.setColour (on ? VirusColours::accent : VirusColours::dimText);
     g.drawFittedText (on ? rateText : String ("OFF"), label.toNearestInt(), Justification::centredRight, 2, 0.8f);
 }
 
@@ -387,18 +388,18 @@ void ScopeDisplay::paint (Graphics& g)
     };
 
     const auto pr = trace (r), pl = trace (l);
-    g.setColour (Colour (0xffc9e6ff).withAlpha (0.45f));
+    g.setColour (VirusColours::lightGrey.withAlpha (0.45f));
     g.strokePath (pr, PathStrokeType (1.0f));
-    g.setColour (VirusColours::blue.withAlpha (0.35f));
+    g.setColour (VirusColours::accentGlow.withAlpha (0.35f));
     g.strokePath (pl, PathStrokeType (3.0f));
-    g.setColour (VirusColours::blue);
+    g.setColour (VirusColours::accent);
     g.strokePath (pl, PathStrokeType (1.3f));
 
     // labels
     g.setFont (CustomLookAndFeel::uiFont (9.5f, true));
     g.setColour (VirusColours::labelText);
     g.drawText ("L", plot.getX() + 2.0f, plot.getY(), 10.0f, 10.0f, Justification::centredLeft);
-    g.setColour (Colour (0xffc9e6ff).withAlpha (0.7f));
+    g.setColour (VirusColours::lightGrey.withAlpha (0.7f));
     g.drawText ("R", plot.getX() + 12.0f, plot.getY(), 10.0f, 10.0f, Justification::centredLeft);
 
     // summary text
@@ -425,8 +426,8 @@ void HelpButton::paintButton (Graphics& g, bool isHighlighted, bool isDown)
     auto b = getLocalBounds().toFloat().reduced (1.0f);
     g.setColour (Colours::black.withAlpha (0.6f));
     g.fillEllipse (b.translated (0.0f, 1.0f));
-    g.setGradientFill (ColourGradient (isHighlighted ? Colour (0xff8a9096) : Colour (0xff6f757b), 0.0f, b.getY(),
-                                       Colour (0xff35393d), 0.0f, b.getBottom(), false));
+    g.setGradientFill (ColourGradient (isHighlighted ? VirusColours::buttonOffTop.brighter (0.12f) : VirusColours::buttonOffTop, 0.0f, b.getY(),
+                                       VirusColours::buttonOffBottom, 0.0f, b.getBottom(), false));
     g.fillEllipse (isDown ? b.reduced (0.5f) : b);
     g.setColour (VirusColours::bevelDark);
     g.drawEllipse (b, 1.0f);
@@ -470,7 +471,7 @@ void HelpOverlay::paint (Graphics& g)
     g.setFont (CustomLookAndFeel::uiFont (11.5f));
     for (auto* line : lines)
     {
-        g.setColour (String (line).startsWith ("Click") ? VirusColours::blue : Colour (0xffdfe3e6));
+        g.setColour (String (line).startsWith ("Click") ? VirusColours::accent : VirusColours::lightText);
         g.drawFittedText (line, text.removeFromTop (21.0f).toNearestInt(), Justification::centredLeft, 1, 0.8f);
     }
 }
